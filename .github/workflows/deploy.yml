@@ -30,6 +30,12 @@ name: Deploy theme
 # inc/class-squee-pclzip.php ships too, as on nlee, because the shared core
 # build at /opt/h5g/flavors/ has an unzipper that cannot be relied on.
 #
+# Bootstrap history: run #1 (3 Sep 2026) went out over SSH, because
+# inc/deploy.php cannot serve a deploy until it is already live. Its HTTPS step
+# returned 404 rest_no_route, which is the healthy chicken-and-egg — a token
+# mismatch would have been 401 and a missing wp-config constant 501. From run
+# #2 onward HTTPS carries deploys and SSH should stay SKIPPED.
+#
 # elevationcc's --resolve origin-IP pinning is deliberately absent: that works
 # around Hostinger's CDN proxy corrupting POST bodies, and elevationcc.co.uk is
 # the only Squee domain routed through it.
