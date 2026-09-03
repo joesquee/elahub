@@ -9,6 +9,8 @@
  *
  *  - "Start Learning Now" → ?start-dalc=1 → empties the cart, adds the DALC
  *    product, and sends the buyer to the themed WooCommerce checkout.
+ *  - /start-dalc/ is a clean-URL alias for the same thing, so a button can be
+ *    pointed at a plain path with no query string to lose.
  *  - The old FunnelKit checkout URL auto-redirects into the same flow.
  *  - The checkout gains a programme header (image + title as H1), a testimonials
  *    sidebar, an author note and a support block — all editable in
@@ -61,9 +63,23 @@ function elahub_native_checkout_url(): string {
 	return $url ?: home_url('/checkout/');
 }
 
-/** Start-checkout button URL. */
+/** Start-checkout button URL (the one the flow actually runs on). */
 function elahub_dalc_start_url(): string {
 	return add_query_arg('start-dalc', '1', elahub_native_checkout_url());
+}
+
+/**
+ * The URL to put on buttons: a clean path, no query string.
+ *
+ * Sally's DALC buy button broke on 3 Sep 2026 because an edit dropped the
+ * ?start-dalc=1 from /checkout/?start-dalc=1. Without the flag nothing is added
+ * to the cart, so WooCommerce sees an empty checkout and bounces the buyer to
+ * the basket — a confusing dead end rather than a visible error. Query strings
+ * are easy to lose in a link field, so buttons should point here instead: the
+ * path either works or 404s, and neither failure is silent.
+ */
+function elahub_dalc_clean_start_url(): string {
+	return home_url('/start-dalc/');
 }
 
 /** URL of the page using the DALC thank-you template. */
@@ -119,14 +135,32 @@ function elahub_cart_has_dalc(): bool {
  * Routing: buttons → native checkout → thank-you
  * ───────────────────────────────────────────────────────────────────────── */
 
-/** Route the old FunnelKit checkout URL into the native flow. */
+/**
+ * Route the clean /start-dalc/ path and the old FunnelKit checkout URL into the
+ * native flow.
+ *
+ * Runs on template_redirect at priority 1, which fires before the 404 template
+ * would render, so /start-dalc/ needs no rewrite rule and no placeholder page.
+ */
 add_action('template_redirect', 'elahub_dalc_bypass_funnelkit', 1);
 function elahub_dalc_bypass_funnelkit(): void {
 	if (is_admin() || ! function_exists('WC')) {
 		return;
 	}
 	$uri = (string) ($_SERVER['REQUEST_URI'] ?? '');
-	if (strpos($uri, 'dalc-programme-checkout') !== false && strpos($uri, 'start-dalc') === false) {
+
+	// Already carrying the flag: let elahub_dalc_start_checkout() handle it.
+	if (strpos($uri, 'start-dalc=') !== false) {
+		return;
+	}
+
+	// Compare against home_url()'s own path, not a bare 'start-dalc', so this
+	// still matches on a subdirectory install (local MAMP serves the site from
+	// /elahub/, where the path is 'elahub/start-dalc').
+	$path = trim((string) parse_url($uri, PHP_URL_PATH), '/');
+	$want = trim((string) parse_url(elahub_dalc_clean_start_url(), PHP_URL_PATH), '/');
+
+	if (($want !== '' && $path === $want) || strpos($uri, 'dalc-programme-checkout') !== false) {
 		wp_safe_redirect(elahub_dalc_start_url());
 		exit;
 	}
