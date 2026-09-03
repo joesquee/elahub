@@ -1,0 +1,1571 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   eLaHub — Design Tokens
+   ========================================================================== */
+
+@layer theme {
+  :root {
+    --text-sm: 16px;
+    --text-base: 18px;
+  }
+}
+
+@theme {
+  /* Colours */
+  --color-primary: #00557d;
+  --color-primary-dark: #014563;
+  --color-primary-light: #c1d7e2;
+  --color-primary-soft: rgba(1, 69, 99, 0.1);
+  --color-primary-softest: rgba(0, 85, 125, 0.03);
+  --color-primary-border: #d8e2e7;
+  --color-icon: rgba(1, 69, 99, 0.45);
+
+  --color-bg-light: #f8f8f8;
+  --color-surface: #fafafa;
+  --color-surface-alt: #f1f1f1;
+  --color-white: #fff;
+
+  --color-text: #0e1114;
+  --color-text-body: #0e1114;
+  --color-border: #d8e2e7;
+  --color-focus-ring: rgba(1, 69, 99, 0.3);
+
+  /* Typography */
+  --font-sans: 'Geist', inter, system-ui, -apple-system, 'Segoe UI', roboto,
+    helvetica, arial, sans-serif;
+
+  /* Figma base is 18px */
+  --text-body-size: 1rem;
+  --text-body-line: 1.8;
+  --text-body-weight: 400;
+  --text-body-tracking: 0;
+
+  --text-h1-size: 3.6667rem;
+  --text-h1-line: 1.3;
+  --text-h1-weight: 600;
+  --text-h1-tracking: -0.02em;
+
+  --text-h2-size: 2.4417rem;
+  --text-h2-line: 1.47;
+  --text-h2-weight: 600;
+  --text-h2-tracking: -0.02em;
+
+  --text-h3-size: 1.7222rem;
+  --text-h3-line: 1.42;
+  --text-h3-weight: 600;
+  --text-h3-tracking: -0.02em;
+
+  --text-h4-size: 1.3889rem;
+  --text-h4-line: 1.42;
+  --text-h4-weight: 600;
+  --text-h4-tracking: -0.02em;
+
+  /* Container logic */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-nav: 1475px;
+  --breakpoint-xl: 1350px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 1920px;
+
+  --container-padding: 1.25rem;
+  --container-padding-sm: 1.5rem;
+  --container-padding-lg: 2rem;
+  --container-padding-xl: 3rem;
+  --container-padding-2xl: 4rem;
+  --container-padding-3xl: 10rem;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+/* ==========================================================================
+   Skip to content link — WCAG 2.4.1
+   Visually hidden until focused; appears top-left for keyboard users.
+   Written as a named class so it compiles regardless of Tailwind scanning.
+   ========================================================================== */
+
+.elahub-skip-link {
+  position: fixed;
+  left: -9999px;
+  top: 1rem;
+  z-index: 200;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  border-radius: 0.75rem;
+  border: 2px solid var(--color-primary-dark);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  text-decoration: none;
+  white-space: nowrap;
+  /* Visible state toggled by JS focus/blur — more reliable than :focus alone */
+  transition: left 0s;
+
+  &.is-focused {
+    left: 1rem;
+    outline: 3px solid var(--color-primary-dark);
+    outline-offset: 2px;
+  }
+}
+
+html {
+  font-size: 18px;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-surface);
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  /* clip instead of hidden: clips off-canvas content without creating a scroll
+	   container, so position:sticky (e.g. sidebar TOC) is never broken. */
+  overflow-x: clip;
+  /* Smooth scrolling for in-page anchor links (e.g. section_id bookmarks) */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Give anchored sections a little breathing room at the top of the viewport */
+section[id] {
+  scroll-margin-top: 2rem;
+}
+
+body {
+  margin: 0;
+  overflow-x: clip;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-body-weight);
+  letter-spacing: var(--text-body-tracking);
+  color: var(--color-text-body);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+}
+
+p {
+  margin: 0 0 1em;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  font-weight: var(--text-body-weight);
+}
+
+h1,
+.h1 {
+  margin: 0 !important;
+  font-family: var(--font-sans);
+  font-size: clamp(2.2rem, 3.2vw + 0.4rem, var(--text-h1-size)) !important;
+  line-height: var(--text-h1-line) !important;
+  font-weight: var(--text-h1-weight) !important;
+  letter-spacing: var(--text-h1-tracking) !important;
+  color: var(--color-text) !important;
+
+  @apply text-balance;
+}
+
+h2,
+.h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.75rem, 2.2vw + 0.85rem, var(--text-h2-size));
+  line-height: var(--text-h2-line);
+  font-weight: var(--text-h2-weight);
+  letter-spacing: var(--text-h2-tracking);
+  color: var(--color-text);
+
+  @apply text-balance;
+}
+
+h3,
+.h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.45rem, 2.4vw + 0.2rem, var(--text-h3-size));
+  line-height: var(--text-h3-line);
+  font-weight: var(--text-h3-weight);
+  letter-spacing: var(--text-h3-tracking);
+  color: var(--color-text);
+
+  @apply text-balance;
+}
+
+h4,
+.h4 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.2rem, 1.6vw + 0.2rem, var(--text-h4-size));
+  line-height: var(--text-h4-line);
+  font-weight: var(--text-h4-weight);
+  letter-spacing: var(--text-h4-tracking);
+  color: var(--color-text);
+
+  @apply text-balance;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.bg-primary
+  :is(a, button, .elahub-button, .wp-block-button__link, input[type='submit'], input[type='button'], input[type='reset']):focus-visible,
+.bg-primary-dark
+  :is(a, button, .elahub-button, .wp-block-button__link, input[type='submit'], input[type='button'], input[type='reset']):focus-visible {
+  outline: 2px solid var(--color-white) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--color-white), 0 0 0 4px var(--color-primary-dark) !important;
+}
+
+/* ==========================================================================
+   Container logic
+   ========================================================================== */
+
+.container {
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: var(--container-padding);
+  padding-right: var(--container-padding);
+  max-width: 100% !important;
+}
+
+@media (min-width: theme(--breakpoint-sm)) {
+  .container {
+    padding-left: var(--container-padding-sm);
+    padding-right: var(--container-padding-sm);
+  }
+}
+
+@media (min-width: theme(--breakpoint-lg)) {
+  .container {
+    padding-left: var(--container-padding-lg);
+    padding-right: var(--container-padding-lg);
+  }
+}
+
+@media (min-width: theme(--breakpoint-xl)) {
+  .container {
+    padding-left: var(--container-padding-xl);
+    padding-right: var(--container-padding-xl);
+  }
+}
+
+@media (min-width: theme(--breakpoint-2xl)) {
+  .container {
+    padding-left: var(--container-padding-2xl);
+    padding-right: var(--container-padding-2xl);
+  }
+}
+
+@media (min-width: theme(--breakpoint-3xl)) {
+  .container {
+    padding-left: var(--container-padding-3xl);
+    padding-right: var(--container-padding-3xl);
+  }
+}
+
+@media (max-width: theme(--breakpoint-md)) {
+  .container--flush-until-md {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* ==========================================================================
+   Desktop mega menu
+   ========================================================================== */
+
+.elahub-nav-item--top {
+  position: relative;
+}
+
+.elahub-nav-toggle[aria-expanded='true'] .elahub-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.elahub-submenu {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: calc(100vw - 3rem);
+
+  @apply rounded-md;
+  border-bottom-right-radius: 3.5rem;
+}
+
+.elahub-submenu-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.elahub-submenu-pattern {
+  position: absolute;
+  right: -10.3125rem;
+  bottom: -4.9375rem;
+  width: 37.5rem;
+  height: 37.625rem;
+  max-width: none;
+  opacity: 0.85;
+}
+
+.elahub-submenu-glow {
+  position: absolute;
+  right: -18rem;
+  bottom: -13rem;
+  width: 42rem;
+  height: 42rem;
+  border-radius: 9999px;
+  background: rgba(0, 85, 125, 0.12);
+  filter: blur(110px);
+}
+
+.elahub-submenu-inner {
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+}
+
+.elahub-submenu-layout {
+  display: flex;
+  align-items: center;
+  gap: 8rem;
+}
+
+.elahub-submenu-links {
+  flex: 1 1 auto;
+  gap: 1rem;
+}
+
+.elahub-submenu-link {
+  display: inline-block;
+}
+
+.elahub-submenu-card {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 18.25rem;
+  width: 18.25rem;
+  max-width: 100%;
+  border: 1px solid var(--color-primary-border, #d8e2e7);
+  background: transparent;
+
+  @apply py-6 px-6 rounded-md;
+  border-bottom-right-radius: 3.5rem;
+  box-sizing: border-box;
+}
+
+.elahub-submenu-card__content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+@media (max-width: 1279px) {
+  .elahub-submenu {
+    max-width: calc(100vw - 2rem);
+  }
+
+  .elahub-submenu-layout {
+    gap: 1.5rem;
+  }
+
+  .elahub-submenu-card {
+    flex-basis: 20rem;
+    width: 20rem;
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* ==========================================================================
+   Footer — outer background SVG (bottom-right decorative dots)
+   ========================================================================== */
+
+.elahub-footer-bg-svg {
+  position: absolute;
+  bottom: -8%;
+  right: -8%;
+  width: 55%;
+  max-width: 860px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 767px) {
+  .elahub-footer-bg-svg {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Footer — Banner SVG dot pattern + Susi photo
+   ========================================================================== */
+
+/*
+ * Dot pattern. Figma: x=953, y=29, 789×790 in a 1662px-wide banner.
+ * Following the same approach as .elahub-submenu-pattern in input.css:
+ * fixed rem dimensions, absolute position, no percentage widths.
+ * lg breakpoint = 1280px per input.css.
+ */
+.elahub-footer-banner__pattern {
+  position: absolute;
+  right: -5rem;
+  top: -3rem;
+  width: 37.5rem; /* matches submenu pattern width in input.css */
+  height: 37.625rem;
+  max-width: none;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 30%);
+  mask-image: linear-gradient(to right, transparent 0%, black 30%);
+}
+
+/* img height:auto already set globally in input.css — no override needed */
+
+@media (max-width: 1279px) {
+  .elahub-footer-banner__pattern {
+    display: none;
+  }
+}
+
+/*
+ * Susi Miller. Figma: 380×380px, x=1149 (69% of 1662px), y=-21.
+ * Pinned bottom-right. z-2 sits above dots (z-1), text is z-10.
+ * lg = 1280px per input.css.
+ */
+.elahub-footer-banner__person {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .elahub-footer-banner__person {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    right: 2rem;
+    z-index: 2;
+    width: 17rem;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 1536px) {
+  .elahub-footer-banner__person {
+    width: 21rem;
+    right: 4rem;
+  }
+}
+
+/* ==========================================================================
+   Footer — "Made by Squee." dot
+   ========================================================================== */
+
+/* The "." — Figma: 26px, primary colour */
+.elahub-made-by-dot {
+  font-size: 1.444rem; /* 26px at 18px base */
+  color: var(--color-primary);
+}
+
+/* ==========================================================================
+   Hero section
+   ========================================================================== */
+
+.elahub-hero__dots-left {
+  position: absolute;
+  left: -0;
+  top: -0;
+  width: 30.2rem;
+  max-width: none;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.3;
+}
+
+.elahub-hero__dots-right {
+  position: absolute;
+  right: -15rem;
+  top: -10rem;
+  width: 75.8rem;
+  max-width: none;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 5;
+}
+
+.elahub-hero__glow {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(120px);
+}
+
+.elahub-hero__glow--tr {
+  width: 66rem;
+  height: 66rem;
+  top: -22rem;
+  right: -18rem;
+  background: rgba(0, 85, 125, 0.2);
+}
+
+.elahub-hero__glow--br {
+  width: 46rem;
+  height: 46rem;
+  bottom: -8rem;
+  right: 30rem;
+  background: rgba(0, 85, 125, 0.2);
+}
+
+.elahub-hero__glow--tl {
+  width: 46rem;
+  height: 46rem;
+  top: -26rem;
+  left: -24rem;
+  background: rgba(0, 85, 125, 0.2);
+}
+
+/* Glow ellipses — positions derived from Figma node coords (÷18px base) */
+.elahub-hero__ellipse {
+  position: absolute;
+  width: 41.0556rem; /* 739px ÷ 18 */
+  height: 41.0556rem;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(12.6667rem); /* 228px ÷ 18 */
+}
+
+/* Ellipse 3 — top-right, x:948 y:-68 */
+.elahub-hero__ellipse--3 {
+  left: 52.6667rem; /* 948px ÷ 18 */
+  top: -3.7778rem; /* -68px ÷ 18 */
+  background: rgba(0, 85, 125, 0.06);
+}
+
+/* Ellipse 2 — bottom-left, x:-518 y:687 */
+.elahub-hero__ellipse--2 {
+  left: -28.7778rem; /* -518px ÷ 18 */
+  top: 38.1667rem; /* 687px ÷ 18 */
+  background: rgba(0, 85, 125, 0.09);
+}
+
+/* Ellipse 4 — top-left, x:-382 y:-414 */
+.elahub-hero__ellipse--4 {
+  left: -21.2222rem; /* -382px ÷ 18 */
+  top: -23rem; /* -414px ÷ 18 */
+  background: rgba(0, 85, 125, 0.09);
+}
+
+/* ==========================================================================
+   Feature section
+   ========================================================================== */
+
+/*
+ * Glow ellipses for tinted-background variants (image_left_bg / image_right_bg).
+ * Values derived from Figma ellipses (blur 200px ÷ 18 = 11.111rem).
+ * rgba(0,85,125,0.08) matches the Figma fill colour + opacity.
+ */
+.elahub-feature__glow {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(11.111rem); /* 200px ÷ 18 */
+  width: 52.4444rem; /* 944px ÷ 18 */
+  height: 52.4444rem;
+  background: rgba(0, 85, 125, 0.08);
+}
+
+/* Image on left — glows sit on the right */
+.elahub-feature__glow--left-a {
+  right: -18.3333rem; /* x:1118 - 968(card width ~) ÷ 18 */
+  top: -3.7222rem; /* y:-67 ÷ 18 */
+}
+
+.elahub-feature__glow--left-b {
+  right: -26.3333rem;
+  top: 5.1667rem; /* y:93 ÷ 18 */
+}
+
+/* Image on right — glows sit on the left */
+.elahub-feature__glow--right-a {
+  left: -18.3889rem; /* mirror */
+  top: -3.7222rem;
+}
+
+.elahub-feature__glow--right-b {
+  left: -26.3333rem;
+  top: 5.1667rem;
+}
+
+/* ==========================================================================
+   Feature section
+   ========================================================================== */
+
+/*
+ * Standard image — border radius only.
+ * Height is controlled in the template with Tailwind classes.
+ */
+.elahub-feature__image {
+  border-radius: 0.889rem 0.889rem 0.889rem 6.222rem;
+}
+
+/*
+ * Outer card shape for bg variants.
+ * Same large br=112px. The card itself is the clipping context.
+ */
+.elahub-feature--bg {
+  border-radius: 1.333rem 1.333rem 1.333rem 6.222rem;
+}
+
+/*
+ * Tinted image card inside bg variants.
+ * Left: large radius on bottom-left. Right: large radius on bottom-right.
+ */
+.elahub-feature__image-tinted--left {
+  border-radius: 1.333rem 0 0 6.222rem;
+}
+
+.elahub-feature__image-tinted--right {
+  border-radius: 0 1.333rem 6.222rem 0;
+}
+
+/*
+ * Glow ellipses — present on ALL variants.
+ * Figma: 944px ÷ 18 = 52.444rem. Blur: 200px ÷ 18 = 11.111rem.
+ * rgba(0, 85, 125, 0.08) matches Figma fill colour + opacity.
+ *
+ * Left glow: Figma ellipse5 x:-331, y:-78 → left:-18.389rem, top:-4.333rem
+ * Right glow: Figma ellipse4 x:727, y:-91 → left:40.389rem, top:-5.056rem
+ */
+.elahub-feature__glow {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  width: 52.444rem;
+  height: 52.444rem;
+  background: rgba(0, 85, 125, 0.08);
+  filter: blur(11.111rem);
+}
+
+.elahub-feature__glow--left {
+  left: -18.389rem;
+  top: -4.333rem;
+}
+
+.elahub-feature__glow--right {
+  left: 40.389rem;
+  top: -5.056rem;
+}
+
+/*
+ * Dot SVG — sits top-left, over image column.
+ * Figma: x:-152, y:-37, 985×986px → ÷18.
+ * Clipped by parent overflow-hidden.
+ */
+.elahub-feature__dots {
+  position: absolute;
+  left: -8.444rem; /* -152px ÷ 18 */
+  top: -2.056rem; /* -37px ÷ 18 */
+  width: 54.722rem; /* 985px ÷ 18 */
+  height: 54.778rem;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.elahub-feature__dots img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+/* ==========================================================================
+   Feature section
+   ========================================================================== */
+
+/*
+ * Tinted bg variant outer card.
+ * Wraps both columns. Same large br=112px.
+ */
+.elahub-feature__card {
+  border-radius: 1.333rem 1.333rem 1.333rem 6.222rem;
+}
+
+/*
+ * Tinted image panel inside bg variants.
+ */
+.elahub-feature__image-tinted--left {
+  border-radius: 1.333rem 0 0 6.222rem;
+}
+
+.elahub-feature__image-tinted--right {
+  border-radius: 0 1.333rem 6.222rem 0;
+}
+
+/*
+ * Glow ellipses — on ALL variants, positioned relative to the section.
+ * No overflow:hidden on section so they bleed freely (matches Figma clipsContent: false).
+ * Size: 944px ÷ 18 = 52.444rem. Blur: 200px ÷ 18 = 11.111rem.
+ *
+ * Left (Figma e5): x:-331, y:-78 — but these are relative to the outer 1725px frame.
+ * We anchor to the section edge instead: left glow bleeds off the left.
+ * Right glow sits behind the image column on the right.
+ */
+.elahub-feature__glow {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  width: 52.444rem;
+  height: 52.444rem;
+  background: rgba(0, 85, 125, 0.08);
+  filter: blur(11.111rem);
+}
+
+.elahub-feature__glow--left {
+  left: -18.389rem; /* -331px ÷ 18 */
+  top: -4.333rem; /* -78px ÷ 18  */
+}
+
+.elahub-feature__glow--right {
+  left: 40.389rem; /* 727px ÷ 18  */
+  top: -5.056rem; /* -91px ÷ 18  */
+}
+
+/*
+ * Dot SVG — top-left of section, behind image column.
+ * Figma: x:-152, y:-37 → ÷18. 985×986px frame.
+ * Hidden on mobile — only shown at lg.
+ */
+.elahub-feature__dots {
+  position: absolute;
+  left: -8.444rem; /* -152px ÷ 18 */
+  top: -2.056rem; /* -37px ÷ 18  */
+  width: 54.722rem; /* 985px ÷ 18  */
+  height: 54.778rem;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.elahub-feature__dots img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+
+/*
+ * Dot SVG inside tinted image card (bg variants only).
+ */
+.elahub-feature__dots-inner {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.elahub-feature__dots-inner img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+}
+
+/*
+ * Strip bottom margin from last wysiwyg child.
+ */
+.elahub-feature__body > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Tick list component
+   ========================================================================== */
+
+.elahub-tick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ==========================================================================
+   Feature section — ellipse and dots behind image
+   ========================================================================== */
+
+.elahub-feature {
+  isolation: isolate;
+}
+
+.elahub-feature__media {
+  position: relative;
+  z-index: 1;
+}
+
+.elahub-feature__media--tinted {
+  height: 100%;
+}
+
+.elahub-feature__ellipse-media {
+  position: absolute;
+  top: -2rem;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 9999px;
+  background: rgba(0, 85, 125, 0.08);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.elahub-feature__media--left .elahub-feature__ellipse-media {
+  left: -8rem;
+}
+
+.elahub-feature__media--right .elahub-feature__ellipse-media {
+  right: -8rem;
+  left: auto;
+}
+
+.elahub-feature__dots-media {
+  position: absolute;
+  top: -1rem;
+  width: 28rem;
+  height: auto;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.elahub-feature__media--left .elahub-feature__dots-media {
+  left: -3rem;
+}
+
+.elahub-feature__media--right .elahub-feature__dots-media {
+  right: -3rem;
+  left: auto;
+}
+
+.elahub-feature__dots-media img {
+  width: 100%;
+  height: auto;
+  max-width: none;
+}
+
+.elahub-feature__image,
+.elahub-feature__image-tinted img {
+  position: relative;
+  z-index: 2;
+}
+
+.elahub-feature__image-tinted {
+  min-height: 20rem;
+}
+
+@media (min-width: 768px) {
+  .elahub-feature__image-tinted {
+    min-height: 28rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .elahub-feature__ellipse-media {
+    top: -4.875rem;
+    width: 46rem;
+    height: 46rem;
+    filter: blur(90px);
+  }
+
+  .elahub-feature__media--left .elahub-feature__ellipse-media {
+    left: -14rem;
+  }
+
+  .elahub-feature__media--right .elahub-feature__ellipse-media {
+    right: -14rem;
+  }
+
+  .elahub-feature__dots-media {
+    top: -2.056rem;
+    width: 34rem;
+    opacity: 0.22;
+  }
+
+  .elahub-feature__media--left .elahub-feature__dots-media {
+    left: -5.5rem;
+  }
+
+  .elahub-feature__media--right .elahub-feature__dots-media {
+    right: -5.5rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .elahub-feature__ellipse-media {
+    width: 59rem;
+    height: 59rem;
+    top: -4.875rem;
+    border-radius: 59rem;
+    filter: blur(100px);
+  }
+
+  .elahub-feature__media--left .elahub-feature__ellipse-media {
+    left: -20.6875rem;
+  }
+
+  .elahub-feature__media--right .elahub-feature__ellipse-media {
+    right: -20.6875rem;
+    left: auto;
+  }
+
+  .elahub-feature__dots-media {
+    top: -2.056rem;
+    width: 43.722rem;
+    opacity: 0.25;
+  }
+
+  .elahub-feature__media--left .elahub-feature__dots-media {
+    left: -8.444rem;
+  }
+
+  .elahub-feature__media--right .elahub-feature__dots-media {
+    right: -8.444rem;
+    left: auto;
+  }
+}
+
+@layer base {
+  h1 a[href],
+  h2 a[href],
+  h3 a[href],
+  h4 a[href],
+  h5 a[href],
+  h6 a[href] {
+    @apply underline underline-offset-2 decoration-current transition-all duration-200;
+  }
+
+  h1 a[href]:hover,
+  h2 a[href]:hover,
+  h3 a[href]:hover,
+  h4 a[href]:hover,
+  h5 a[href]:hover,
+  h6 a[href]:hover,
+  h1 a[href]:focus-visible,
+  h2 a[href]:focus-visible,
+  h3 a[href]:focus-visible,
+  h4 a[href]:focus-visible,
+  h5 a[href]:focus-visible,
+  h6 a[href]:focus-visible {
+    @apply underline-offset-4;
+  }
+}
+
+@layer components {
+  .elahub-button,
+  .wp-block-button__link,
+  button,
+  input[type='submit'],
+  input[type='button'],
+  input[type='reset'] {
+    @apply no-underline transition-all duration-200;
+  }
+}
+
+.elahub-icon-gradient {
+  display: inline-block;
+  background-image: conic-gradient(
+    from 180deg at 50% 50%,
+    var(--color-primary-dark) 0deg,
+    var(--color-primary-light) 360deg
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.elahub-services-grid__deco {
+  z-index: 0;
+}
+
+.elahub-services-grid__ellipse-media {
+  right: -20.6875rem;
+  left: auto;
+  top: -14rem;
+}
+
+.elahub-services-grid__dots-media {
+  right: -8.444rem;
+  left: auto;
+  top: -11rem;
+  opacity: 0.25;
+}
+
+@media (min-width: 1280px) {
+  .elahub-services-grid__ellipse-media {
+    right: -14rem;
+    top: -10rem;
+  }
+
+  .elahub-services-grid__dots-media {
+    right: -5.5rem;
+    top: -8rem;
+    width: 34rem;
+    opacity: 0.22;
+  }
+}
+
+@media (min-width: 1536px) {
+  .elahub-services-grid__ellipse-media {
+    right: -20.6875rem;
+    top: -14rem;
+    width: 59rem;
+    height: 59rem;
+    border-radius: 59rem;
+    filter: blur(100px);
+  }
+
+  .elahub-services-grid__dots-media {
+    right: -8.444rem;
+    top: -11rem;
+    width: 43.722rem;
+    opacity: 0.25;
+  }
+}
+
+/* ==========================================================================
+   Page hero
+   ========================================================================== */
+
+.elahub-page-hero {
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.elahub-page-hero__section-glow {
+  position: absolute;
+  width: 45%;
+  aspect-ratio: 1;
+  left: -20%;
+  top: -20%;
+  border-radius: 9999px;
+  background: rgba(0, 85, 125, 0.15);
+  filter: blur(9rem);
+}
+
+.elahub-page-hero__media-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+
+.elahub-page-hero__media-glow {
+  position: absolute;
+  width: 41.0556rem;
+  height: 41.0556rem;
+  border-radius: 9999px;
+  background: rgba(0, 85, 125, 0.06);
+  filter: blur(12.6667rem);
+  left: -8rem;
+  top: -3rem;
+}
+
+.elahub-page-hero__media-dots {
+  position: absolute;
+  width: 50.3518rem;
+  max-width: none;
+  left: -10rem;
+  top: -11.1111rem;
+  opacity: 0.18;
+}
+
+.elahub-page-hero__box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: rgba(0, 85, 125, 0.07);
+  border-radius: 3.6667rem 0.4444rem 3.6667rem 0.4444rem;
+  overflow: hidden;
+  min-height: 20rem;
+}
+
+@media (min-width: 768px) {
+  .elahub-page-hero__box {
+    min-height: 28rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .elahub-page-hero__box {
+    min-height: 32.7222rem;
+  }
+}
+
+.elahub-page-hero__box--cutout,
+.elahub-page-hero__box--icon {
+  overflow: visible;
+}
+
+.elahub-page-hero__full-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100% !important;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.elahub-page-hero__cutout-image {
+  position: absolute;
+  bottom: 0;
+  width: auto;
+  max-width: none;
+  height: 112%;
+  object-fit: contain;
+}
+
+.elahub-page-hero__cutout--left {
+  left: 0;
+}
+
+.elahub-page-hero__cutout--center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.elahub-page-hero__cutout--right {
+  right: 0;
+}
+
+.elahub-page-hero__icon-image {
+  width: auto;
+  height: 6rem;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+@media (min-width: 640px) {
+  .elahub-page-hero__icon-image {
+    height: 7.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .elahub-page-hero__icon-image {
+    height: 10.1667rem;
+  }
+}
+
+.elahub-page-hero__icon-fa {
+  font-size: clamp(4.5rem, 10vw, 10.1667rem);
+  color: var(--color-primary-dark);
+}
+
+/* ==========================================================================
+   WordPress search form — .search-form
+   Used on the 404 page and search results header via get_search_form().
+   Styled to match the site's elahub-form aesthetic.
+   ========================================================================== */
+
+.search-form {
+  @apply flex flex-col gap-2;
+}
+
+.search-form__label {
+  @apply text-sm font-semibold text-text;
+}
+
+.search-form__row {
+  @apply flex items-stretch gap-2;
+}
+
+.search-field {
+  @apply min-w-0 flex-1 rounded-lg border border-primary-border bg-white px-4 py-3 text-base text-text placeholder:text-text/40 focus:outline-none focus:ring-2 focus:ring-primary-dark focus:ring-offset-2;
+}
+
+.search-submit {
+  @apply inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-primary-dark px-5 py-3 text-base font-normal text-white transition hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2;
+}
+
+/* ==========================================================================
+   Rich content — .elahub-content
+   Applied to the_content() output on plain pages (page.php) so that
+   WordPress-generated HTML gets consistent spacing and link styles using
+   the theme's existing heading/body token definitions.
+   ========================================================================== */
+
+.elahub-content {
+  /* Paragraphs */
+  p {
+    @apply mb-5;
+  }
+
+  p:last-child {
+    @apply mb-0;
+  }
+
+  /* Ordered + unordered lists */
+  ul,
+  ol {
+    @apply mb-5 pl-6;
+  }
+
+  ul {
+    @apply list-disc;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+
+  li {
+    @apply mb-1.5;
+  }
+
+  li > ul,
+  li > ol {
+    @apply mt-1.5 mb-0;
+  }
+
+  /* Inline links — styled to match body link pattern */
+  a:not([class]) {
+    @apply underline underline-offset-2 transition hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2;
+  }
+
+  /* Headings — let h2, h3, h4 use the global size/weight tokens,
+	   just add vertical rhythm */
+  h2,
+  h3,
+  h4 {
+    @apply mt-10 mb-3;
+  }
+
+  h2:first-child,
+  h3:first-child,
+  h4:first-child {
+    @apply mt-0;
+  }
+
+  /* Horizontal rules */
+  hr {
+    @apply my-8 border-primary-border;
+  }
+
+  /* Block quotes */
+  blockquote {
+    @apply border-l-4 border-primary-dark/30 pl-5 italic;
+  }
+
+  /* Inline code */
+  code {
+    @apply rounded bg-primary-softest px-1.5 py-0.5 text-sm;
+  }
+
+  /* Strong / bold already inherits font-weight; no override needed */
+}
+
+/* ==========================================================================
+   Form — .elahub-form
+   Scoped to all native forms in flexible layouts.
+   Uses @apply with Tailwind utilities so values stay in sync with tokens.
+   ========================================================================== */
+
+.elahub-form {
+  @apply flex flex-col gap-4;
+}
+
+.elahub-form__fields {
+  @apply flex flex-col gap-6;
+}
+
+.elahub-form__field {
+  @apply flex flex-col gap-2;
+}
+
+.elahub-form__label {
+  @apply text-base font-bold text-text;
+}
+
+.elahub-form__input {
+  @apply w-full rounded-xl border border-[#bababa] bg-white px-4 py-2.5 text-base text-text outline-none transition;
+
+  &:focus {
+    @apply border-primary ring-2 ring-primary/10;
+  }
+
+  &::placeholder {
+    @apply text-text/40;
+  }
+}
+
+.elahub-form__textarea {
+  @apply min-h-32 resize-y;
+}
+
+.elahub-form__select {
+  @apply appearance-none cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6L8 10L12 6' stroke='%230e1114' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+
+  @apply pr-10;
+}
+
+.elahub-form__footer {
+  @apply pt-2;
+
+  /* Submit buttons inside form footers match the button component's
+     hover behaviour: pointer cursor + animated underline on the text. */
+  button[type="submit"] {
+    @apply cursor-pointer;
+
+    &:hover {
+      @apply underline underline-offset-4;
+    }
+  }
+}
+
+.elahub-form__status {
+  @apply rounded-lg px-4 py-3 text-base font-bold;
+
+  &[data-state='success'] {
+    @apply bg-green-50 text-green-800;
+  }
+
+  &[data-state='error'] {
+    @apply bg-red-50 text-red-800;
+  }
+}
+
+/* Field-level error state — JS adds .is-invalid */
+.elahub-form__input.is-invalid {
+  @apply border-red-500 ring-2 ring-red-500/10;
+}
+
+.elahub-form__error {
+  @apply text-sm text-red-600;
+}
+
+.service-template
+  > section:first-of-type
+  + section[aria-labelledby^='logo-strip-'] {
+  @apply mt-8 lg:mt-12;
+}
+
+main.service-template
+  > section:first-of-type
+  + section[aria-labelledby^='logo-strip-'] {
+  @apply mt-8 lg:mt-12;
+}
+
+.elahub-rich-content {
+  @apply flex flex-col gap-6;
+}
+
+.elahub-rich-content > * {
+  @apply !mb-0;
+}
+
+.elahub-rich-content h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.45rem, 2.4vw + 0.2rem, var(--text-h3-size));
+  line-height: var(--text-h3-line);
+  font-weight: var(--text-h3-weight);
+  letter-spacing: var(--text-h3-tracking);
+  color: var(--color-text);
+  text-wrap: balance;
+  scroll-margin-top: 8rem;
+}
+
+.elahub-rich-content h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.2rem, 1.6vw + 0.2rem, var(--text-h4-size));
+  line-height: var(--text-h4-line);
+  font-weight: var(--text-h4-weight);
+  letter-spacing: var(--text-h4-tracking);
+  color: var(--color-text);
+  text-wrap: balance;
+  scroll-margin-top: 8rem;
+}
+
+.elahub-rich-content h4,
+.elahub-rich-content h5,
+.elahub-rich-content h6 {
+  @apply !text-xl !font-bold;
+  scroll-margin-top: 8rem;
+}
+
+.elahub-rich-content p,
+.elahub-rich-content ul,
+.elahub-rich-content ol,
+.elahub-rich-content blockquote,
+.elahub-rich-content figure {
+  @apply !mb-0;
+}
+
+.elahub-rich-content ul,
+.elahub-rich-content ol {
+  @apply pl-6;
+}
+
+.elahub-rich-content ul {
+  @apply list-disc;
+}
+
+.elahub-rich-content ol {
+  @apply list-decimal;
+}
+
+.elahub-rich-content li + li {
+  @apply mt-2;
+}
+
+.elahub-rich-content a {
+  @apply text-primary underline underline-offset-2 transition hover:text-primary-dark;
+}
+
+.elahub-rich-content img {
+  @apply h-auto w-full rounded-lg border border-primary-border object-cover;
+}
+
+.elahub-rich-content figure img {
+  @apply rounded-lg border border-primary-border;
+}
+
+.elahub-rich-content figcaption {
+  @apply mt-3 text-text/70;
+}
+
+.elahub-rich-content blockquote {
+  @apply rounded-lg border border-primary-border bg-surface-alt px-6 py-6;
+}
+
+.elahub-rich-content table {
+  @apply w-full border-collapse overflow-hidden rounded-lg border border-primary-border;
+}
+
+.elahub-rich-content th,
+.elahub-rich-content td {
+  @apply border border-primary-border px-4 py-3 text-left align-top;
+}
+
+.elahub-rich-content hr {
+  @apply border-primary-border;
+}
+
+/* ==========================================================================
+   Rich text — CMS / WYSIWYG output
+
+   Tailwind's preflight resets `ul { list-style: none; padding: 0 }` and nothing
+   gives `a` a colour, so any ACF field echoed through wp_kses_post() loses its
+   bullets and renders its links as plain black text. Add `elahub-rich-text` to
+   the wrapper of every WYSIWYG field to restore both.
+
+   The underline is not decorative: link blue on body text is only 2.34:1, so
+   colour alone must never be what marks a link (WCAG 1.4.1 Use of Colour).
+   ========================================================================== */
+
+.elahub-rich-text ul,
+.elahub-rich-text ol {
+  @apply mb-4 pl-6;
+}
+
+.elahub-rich-text ul {
+  @apply list-disc;
+}
+
+.elahub-rich-text ol {
+  @apply list-decimal;
+}
+
+.elahub-rich-text li + li {
+  @apply mt-2;
+}
+
+.elahub-rich-text a {
+  @apply text-primary underline underline-offset-2 transition hover:text-primary-dark;
+}
+
+.elahub-rich-text > *:last-child {
+  @apply !mb-0;
+}
+
+/* Dark panels carry white body copy, and text-primary is 1.28:1 on the CTA
+   gradient — unreadable. Links go white there and lean on the underline. */
+.elahub-rich-text--invert a {
+  @apply text-white hover:text-white;
+}
+
+.elahub-cs-summary__body,
+.elahub-cs-quote {
+  @apply flex flex-col gap-6;
+}
+
+.elahub-cs-summary__body > *,
+.elahub-cs-quote > * {
+  @apply !mb-0;
+}
+
+/* overflow-x: clip on html/body handles all page types without breaking sticky
+   positioning, so no per-template overflow overrides are needed. */
+
+.navigation.pagination {
+  @apply mt-10 md:mt-12;
+}
+
+.navigation.pagination .nav-links {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.navigation.pagination .page-numbers {
+  @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-primary-border px-4 py-2 text-text no-underline transition;
+}
+
+.navigation.pagination .page-numbers:hover {
+  @apply bg-primary-soft;
+}
+
+.navigation.pagination .page-numbers.current {
+  @apply border-primary-dark bg-primary-dark text-white;
+}
+
+.navigation.pagination .page-numbers.dots {
+  @apply border-none bg-transparent px-1;
+}
+
+.navigation.pagination .nav-links {
+  @apply flex flex-wrap items-center justify-center gap-2;
+}

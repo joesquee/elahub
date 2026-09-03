@@ -1,0 +1,278 @@
+name: Deploy theme
+
+# Push to main and the elahub theme goes live. That is the whole thing.
+#
+# Seventh site on this pipeline, after squee.design, the support portal,
+# celebratingdisability.co.uk, elevationcc.co.uk, nleeandson.co.uk and
+# solu.solutions. The workflow is deliberately near-identical to nlee's: only
+# the endpoint URL, the rsync target, the purge-lookup domain, the fallback
+# website UID and the smoke-test URL differ. Divergence between these files has
+# already cost a day of debugging once.
+#
+# TARGET IS THE STAGING SITE. elahubv2.squeehosting.co.uk (UID wTGf7ncsM) is
+# where eLaHub lives today; it joins the support plan on its own domain later.
+# When that happens, five values change here and nothing else.
+#
+# Runs on a GitHub runner because Hostinger's port 65002 is unreachable from
+# Claude's container and from the Cowork shell on Joe's Mac. A runner can
+# reach it.
+#
+# Same Hostinger agency account (u455463912) as the others, so
+# HOSTINGER_API_TOKEN and HOSTINGER_SSH_KEY hold the same values in every repo.
+# Regenerating either means re-pasting it everywhere.
+#
+# DEPLOY_TOKEN is per-site and must match SQUEE_DEPLOY_TOKEN in this site's
+# wp-config.php.
+#
+# PHP version is NOT the variable here — this site runs 8.5 and that is fine.
+# The header-newline bug, not PHP, caused every PCLZIP_ERR_BAD_FORMAT on the
+# earlier sites; the CR/LF strip in the HTTPS step below is the actual fix.
+# inc/class-squee-pclzip.php ships too, as on nlee, because the shared core
+# build at /opt/h5g/flavors/ has an unzipper that cannot be relied on.
+#
+# elevationcc's --resolve origin-IP pinning is deliberately absent: that works
+# around Hostinger's CDN proxy corrupting POST bodies, and elevationcc.co.uk is
+# the only Squee domain routed through it.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the packaging step below diffs against the previous
+          # commit, which a shallow clone does not have.
+          fetch-depth: 0
+
+      - name: Package the theme
+        # Ship only what changed. WordPress falls back to PclZip, a pure-PHP
+        # unzipper, when ZipArchive is missing, and a full-theme payload can
+        # sit in the HTTPS step for over ten minutes and still time out. A
+        # normal push touches a handful of small files, which PclZip handles
+        # instantly. It also closes a nastier hole: a full payload can be
+        # killed by PHP's execution limit mid-copy, leaving the theme
+        # half-updated.
+        id: package
+        run: |
+          set -euo pipefail
+          MODE=full
+          BEFORE="${{ github.event.before }}"
+
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "$BEFORE" ] \
+             && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            git diff --name-only --diff-filter=ACMRT "$BEFORE" "${{ github.sha }}" \
+              | grep -vE '^(\.github/|\.gitignore$)' > /tmp/changed.txt || true
+            COUNT=$(wc -l < /tmp/changed.txt)
+            echo "changed since $BEFORE: $COUNT file(s)"
+            # A sprawling diff is not worth 150 round trips; ship everything.
+            # Zero is deliberately a delta, not a full deploy: a push that only
+            # touches .github/ has nothing to send, and the minimal payload
+            # below is a no-op rather than a multi-megabyte round trip.
+            if [ "$COUNT" -le 150 ]; then
+              MODE=delta
+            fi
+          fi
+
+          if [ "$MODE" = "delta" ]; then
+            # style.css and functions.php ride along on every delta. The
+            # endpoint refuses any payload that does not look like this theme,
+            # and this keeps that check honest rather than weakening it. Both
+            # are small and copying identical bytes is a no-op.
+            { cat /tmp/changed.txt; echo style.css; echo functions.php; } \
+              | sort -u > /tmp/tosend.txt
+            zip -q /tmp/theme.zip -@ < /tmp/tosend.txt
+            echo "delta deploy, $(wc -l < /tmp/tosend.txt) file(s):"
+            sed 's/^/  /' /tmp/tosend.txt
+          else
+            echo "full deploy"
+            zip -qr /tmp/theme.zip . \
+              -x '.git/*' '.github/*' '.gitignore' '.DS_Store' '*/.DS_Store'
+          fi
+
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          # Print size AND md5. The endpoint reports both for the body it
+          # received, and without the sending side to compare against there is
+          # no way to tell a corrupted-in-transit payload from a working
+          # payload that the server-side unzipper cannot parse. That ambiguity
+          # is what made this failure so hard to pin down.
+          echo "zip bytes: $(wc -c < /tmp/theme.zip)"
+          echo "zip md5:   $(md5sum /tmp/theme.zip | cut -d" " -f1)"
+          # Prove the archive is structurally valid before it leaves the runner,
+          # so a server-side BAD_FORMAT can only mean transport or unzipper.
+          unzip -t /tmp/theme.zip
+
+      - name: Deploy over HTTPS
+        # Primary path. Was rsync over SSH on port 65002, which is unreliable
+        # from GitHub runners: on the support repo, runs 12, 13, 18, 24, 28, 29
+        # and 30 all died before touching a file, and retrying inside the step
+        # did not help because the port can stay down for minutes. HTTPS to the
+        # site is the one path proven reliable, since it is how the site serves
+        # every page.
+        #
+        # The endpoint validates the payload really is this theme before copying
+        # anything and never deletes, so the worst case matches the old rsync:
+        # nothing changes.
+        id: https_deploy
+        continue-on-error: true
+        env:
+          # Passed as env rather than interpolated into the script: the value
+          # is never re-parsed by the shell, so it cannot break quoting.
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "DEPLOY_TOKEN not set — skipping, SSH fallback will run."
+            exit 1
+          fi
+
+          # THE BUG, found 14 Aug 2026 after six failed runs here and days on
+          # elevationcc. An HTTP header value cannot contain a newline. The
+          # deploy token was generated with `openssl rand -hex 32`, which emits
+          # a trailing \n, and that newline travelled through pbcopy into the
+          # GitHub secret. curl then wrote:
+          #
+          #     X-Squee-Deploy-Token: <64 hex>\n
+          #     \n                              <- header block ends here
+          #     X-Squee-Deploy-Commit: ...       <- now part of the BODY
+          #     Content-Type: text/plain         <- also body
+          #
+          # so the archive arrived with a block of header text glued to the
+          # front of it and no Content-Type at all. Proof from run #9: the
+          # received body began "X-Squee-Deploy-Commit: c68078b..." and the
+          # endpoint reported ct= empty.
+          #
+          # Auth still passed, because the token itself was the one header that
+          # survived intact — which is exactly why this looked like an
+          # unzipping problem for so long rather than a malformed request.
+          #
+          # Stripping CR and LF here fixes it whatever is stored in the secret,
+          # so it cannot come back if a token is ever regenerated carelessly.
+          TOKEN=$(printf '%s' "$DEPLOY_TOKEN" | tr -d '\r\n')
+          SHA=$(printf '%s' "$COMMIT_SHA" | tr -d '\r\n')
+          if [ "${#TOKEN}" -ne "${#DEPLOY_TOKEN}" ]; then
+            echo "NOTE: stripped whitespace from DEPLOY_TOKEN (${#DEPLOY_TOKEN} -> ${#TOKEN} chars)."
+            echo "      Re-paste the secret without a trailing newline to keep this tidy."
+          fi
+          if [ "${{ steps.package.outputs.mode }}" = "delta" ]; then
+            RETRY="--retry 2 --retry-delay 5"; MAXTIME=90
+          else
+            RETRY="--retry 0"; MAXTIME=300
+          fi
+          # Send the archive base64-encoded, not raw.
+          #
+          # Measured on run #5: the runner sent 8344 bytes of byte-perfect zip
+          # (unzip -t clean) and the endpoint received 8464 — 120 bytes ADDED
+          # in flight, with a different md5. Something in the path rewrites raw
+          # binary request bodies. That, not the unzipper, is what produced
+          # PCLZIP_ERR_BAD_FORMAT on every run here and on elevationcc, and it
+          # is why changing PHP version fixed nothing: a corrupted archive is
+          # corrupted whichever version reads it.
+          #
+          # base64 is pure ASCII, so it survives charset conversion or
+          # re-encoding anywhere in the path. The endpoint accepts raw zips too
+          # and reports which transport carried the payload.
+          base64 -w0 /tmp/theme.zip > /tmp/theme.b64
+          echo "b64 bytes: $(wc -c < /tmp/theme.b64)"
+          code=$(curl -sS -o /tmp/deploy.json -w '%{http_code}' \
+            $RETRY --retry-connrefused --max-time "$MAXTIME" \
+            -X POST \
+            -H "X-Squee-Deploy-Token: $TOKEN" \
+            -H "X-Squee-Deploy-Commit: $SHA" \
+            -H "Content-Type: text/plain; charset=us-ascii" \
+            -H "Content-Transfer-Encoding: base64" \
+            --data-binary @/tmp/theme.b64 \
+            "https://elahubv2.squeehosting.co.uk/wp-json/squee/v1/self-deploy")
+          echo "HTTP $code"; cat /tmp/deploy.json; echo
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
+
+      - name: Deploy over SSH (fallback)
+        # Only runs when HTTPS could not. Kept so the pipeline bootstraps
+        # itself: the very first run that ships inc/deploy.php has to get there
+        # somehow, and two independent paths means one being down is survivable
+        # rather than blocking.
+        #
+        # UID wTGf7ncsM, SSH username u455463912_wTGf7ncsM and the directory
+        # below were all read verbatim off hPanel → Advanced → Remote access on
+        # 3 Sep 2026. Do not infer the UID from a database name; hPanel is
+        # ground truth.
+        if: steps.https_deploy.outcome == 'failure'
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          echo "key bytes: $(wc -c < ~/.ssh/key)"   # length only, never the key
+
+          # Pin ed25519 only: a bare ssh-keyscan records rsa, ecdsa AND ed25519,
+          # and on Hostinger's shared IP the key ssh then negotiated did not
+          # match the recorded one. Scanning one algorithm and forcing the same
+          # one below keeps host verification on and consistent.
+          #
+          # Retry rather than failing on the first miss, and never send
+          # ssh-keyscan's errors to /dev/null: a run once died here with no
+          # output at all because of that.
+          for attempt in 1 2 3 4 5; do
+            echo "--- attempt $attempt: tcp reachability ---"
+            timeout 10 bash -c 'cat < /dev/null > /dev/tcp/82.25.100.206/65002' \
+              && echo "82.25.100.206:65002 open" || echo "82.25.100.206:65002 UNREACHABLE"
+            ssh-keyscan -t ed25519 -p 65002 82.25.100.206 >> ~/.ssh/known_hosts || true
+            if [ -s ~/.ssh/known_hosts ]; then
+              echo "recorded host keys: $(wc -l < ~/.ssh/known_hosts)"
+              break
+            fi
+            echo "no host key recorded, waiting 15s"
+            sleep 15
+          done
+          test -s ~/.ssh/known_hosts
+
+          # No --delete: files removed locally are not removed on live, so a bad
+          # run cannot wipe the theme.
+          rsync -rlvz --checksum --no-perms --no-owner --no-group --omit-dir-times \
+            --exclude='.git/' --exclude='.github/' --exclude='.gitignore' --exclude='.DS_Store' \
+            -e "ssh -i ~/.ssh/key -p 65002 -o HostKeyAlgorithms=ssh-ed25519" \
+            ./ u455463912_wTGf7ncsM@82.25.100.206:/home/u455463912/websites/wTGf7ncsM/public_html/wp-content/themes/elahub/
+
+      - name: Fail if neither path deployed
+        if: steps.https_deploy.outcome == 'failure'
+        run: |
+          echo "HTTPS deploy failed; SSH fallback ran. Check the step above."
+          echo "Once DEPLOY_TOKEN and SQUEE_DEPLOY_TOKEN are set, HTTPS should carry deploys on its own."
+
+      - name: Purge page and CDN cache
+        run: |
+          # elahubv2.squeehosting.co.uk is on the same Agency plan, so it lives under the
+          # /api/agency-hosting/v1 tree keyed by website UID, not the standard
+          # /api/hosting/v1 username+domain tree — the standard endpoints 404
+          # because this token sees zero websites there. One DELETE clears
+          # cache for all domains on the website, CDN included.
+          #
+          # The domain lookup below also prints every website UID this token can
+          # see, which is the easiest way to confirm which install actually
+          # serves elahubv2.squeehosting.co.uk. Read it on the first run. If the
+          # subdomain does not appear in the list, the fallback UID below is
+          # doing all the work and must be right.
+          AUTH="Authorization: Bearer ${{ secrets.HOSTINGER_API_TOKEN }}"
+          curl -sS -H "$AUTH" -H "Accept: application/json" \
+            "https://developers.hostinger.com/api/agency-hosting/v1/domains" > /tmp/domains.json
+          echo "agency domains visible to this token:"
+          jq -r '(.data // .) | .[] | "  \(.domain // .fqdn)  uid=\(.website_uid)"' /tmp/domains.json || cat /tmp/domains.json
+          SITE_UID=$(jq -r '(.data // .) | .[] | select((.domain // .fqdn) == "elahubv2.squeehosting.co.uk") | .website_uid' /tmp/domains.json | head -1)
+          if [ -z "$SITE_UID" ] || [ "$SITE_UID" = "null" ]; then
+            echo "domain lookup failed, falling back to the UID from the hPanel URL"
+            SITE_UID="wTGf7ncsM"
+          fi
+          code=$(curl -sS -o /tmp/purge.json -w '%{http_code}' -X DELETE \
+            -H "$AUTH" -H "Accept: application/json" \
+            "https://developers.hostinger.com/api/agency-hosting/v1/websites/$SITE_UID/cache")
+          echo "purge website $SITE_UID -> HTTP $code"; cat /tmp/purge.json; echo
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
+
+      - name: Verify site answers logged out
+        run: |
+          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 https://elahubv2.squeehosting.co.uk/ | tee /tmp/code
+          grep -qE '^(200|301|302)$' /tmp/code

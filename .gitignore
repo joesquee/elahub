@@ -1,48 +1,40 @@
-# Wordpress - ignore core, configuration, examples, uploads and logs.
-# https://github.com/github/gitignore/blob/main/WordPress.gitignore
+# ---------------------------------------------------------------
+# elahub theme .gitignore
+# This repo IS the deploy artifact: whatever is committed here is
+# what the pipeline publishes into
+#   public_html/wp-content/themes/elahub
+# So anything ignored here simply never reaches live, and anything
+# committed here does. Nothing secret belongs in this tree at all.
+# ---------------------------------------------------------------
 
-# Core
-#
-# Note: if you want to stage/commit WP core files
-# you can delete this whole section/until Configuration.
-/wp-admin/
-/wp-content/index.php
-/wp-content/languages
-/wp-content/plugins/index.php
-/wp-content/themes/index.php
-/wp-includes/
-/index.php
-/license.txt
-/readme.html
-/wp-*.php
-/xmlrpc.php
+# Local build dependencies, never deployed. Tailwind v4 is compiled
+# ahead of time into output.css, which IS committed. input.css is
+# committed too — it is the source of truth for the theme tokens and
+# losing it would mean output.css could never be rebuilt.
+/node_modules/
+/vendor/
 
-# Configuration
-wp-config.php
-
-# Example themes
-/wp-content/themes/twenty*/
-
-# Example plugin
-/wp-content/plugins/hello.php
-
-# Uploads
-/wp-content/uploads/
-
-# Log files
+# Logs
 *.log
 
-# htaccess
+# Local editor / OS state
+.DS_Store
+.claude/
+.vscode/
+.idea/
+
+# Not tracked so a deploy can never wipe the live LiteSpeed /
+# php_value directives with a MAMP-adjusted local copy.
 /.htaccess
+/.htaccess.bk
+/.htaccess.disabled
 
-# All plugins
-#
-# Note: If you wish to whitelist plugins,
-# uncomment the next line
-#/wp-content/plugins
+# Never commit a credential into a tree that gets copied onto a
+# public webserver. Deploy tokens live in wp-config.php on the
+# server and in GitHub repo secrets, never here.
+*.env
+deploy.env
 
-# All themes
-#
-# Note: If you wish to whitelist themes,
-# uncomment the next line
-#/wp-content/themes
+# Hosting artefacts and stray local state that have no business on live.
+/.ftpquota
+/.well-known/
