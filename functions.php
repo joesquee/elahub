@@ -226,13 +226,100 @@ function elahub_get_footer_certifications()
  * Global Content > Advocacy Logos Defaults). Any other value (or omitted)
  * returns the standard Logo Strip Defaults set.
  */
+/**
+ * Find a published page by its page template, whatever its slug or parent.
+ *
+ * Pages here have been renamed and re-parented more than once (the advocacy
+ * partners page alone has been both /advocacy-partners/ and
+ * /elahub-advocacy-partners/), so matching on the template is far more durable
+ * than matching on a path.
+ *
+ * @param string $template Template file name, e.g. 'template-advocacy-partners.php'.
+ * @return string Permalink, or '' if no page uses that template.
+ */
+function elahub_get_page_url_by_template($template)
+{
+	$cache_key = 'elahub_page_url_tpl_' . md5((string) $template);
+	$cached    = wp_cache_get($cache_key, 'elahub');
+
+	if (false !== $cached) {
+		return (string) $cached;
+	}
+
+	$pages = get_posts(array(
+		'post_type'      => 'page',
+		'post_status'    => 'publish',
+		'posts_per_page' => 1,
+		'meta_key'       => '_wp_page_template',
+		'meta_value'     => $template,
+		'fields'         => 'ids',
+		'no_found_rows'  => true,
+	));
+
+	$url = $pages ? (string) get_permalink($pages[0]) : '';
+
+	wp_cache_set($cache_key, $url, 'elahub');
+
+	return $url;
+}
+
+/**
+ * URL of the advocacy partners page.
+ *
+ * Used as the fallback destination for the advocacy logo strip heading, so the
+ * heading above the partner logos links through to the partners themselves
+ * without anyone having to set an option first. An explicit
+ * advocacy_logos_default_url in Site Settings still wins.
+ *
+ * @return string
+ */
+function elahub_get_advocacy_partners_url()
+{
+	return elahub_get_page_url_by_template('template-advocacy-partners.php');
+}
+
+/**
+ * URL of the Awards page.
+ *
+ * Matched on the slug rather than the full path, because the page sits under
+ * /about-us/ and could be re-parented again.
+ *
+ * @return string
+ */
+function elahub_get_awards_page_url()
+{
+	$cached = wp_cache_get('elahub_awards_url', 'elahub');
+
+	if (false !== $cached) {
+		return (string) $cached;
+	}
+
+	$pages = get_posts(array(
+		'post_type'      => 'page',
+		'post_status'    => 'publish',
+		'posts_per_page' => 1,
+		'name'           => 'awards',
+		'fields'         => 'ids',
+		'no_found_rows'  => true,
+	));
+
+	$url = $pages ? (string) get_permalink($pages[0]) : '';
+
+	wp_cache_set('elahub_awards_url', $url, 'elahub');
+
+	return $url;
+}
+
 function elahub_get_logo_strip_defaults($set = 'standard')
 {
 	if ('advocacy' === $set) {
 		return array(
 			'heading' => elahub_get_option_field('advocacy_logos_default_heading', 'In partnership with'),
 			'logos'   => elahub_get_option_field('advocacy_logos_default_logos', array()),
-			'url'     => elahub_get_option_field('advocacy_logos_default_url', ''),
+			'url'     => elahub_get_option_field(
+				'advocacy_logos_default_url',
+				elahub_get_advocacy_partners_url()
+			),
 		);
 	}
 

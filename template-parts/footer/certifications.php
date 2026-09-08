@@ -6,8 +6,15 @@
  * @package elahub
  */
 
-$heading = elahub_get_option_field('footer_certifications_heading', 'Award Winning eLaHub professional excellence');
+$heading = elahub_get_option_field('footer_certifications_heading', 'Award-winning professional excellence');
 $items   = elahub_get_footer_certifications();
+
+// Destination for the heading. An explicit footer_certifications_url in Site
+// Settings wins; otherwise it resolves to the Awards page.
+$heading_url = trim((string) elahub_get_option_field(
+	'footer_certifications_url',
+	elahub_get_awards_page_url()
+));
 
 if (empty($items)) {
 	return;
@@ -17,12 +24,20 @@ if (empty($items)) {
 <section class="pb-8 md:pb-10">
 	<div class="flex flex-col items-center gap-6">
 		<!-- h2 clamp in input.css is too large — !important overrides it.
-		     Note: the Figma design had this underlined, but the heading is not a
-		     link, so the underline reads as misleading. Remove until/unless we
-		     wire it up to a real award page. -->
+		     The Figma design had this underlined. The underline is back now the
+		     heading links to the Awards page, which is what it was always meant
+		     to signal. Without an Awards page it falls back to plain text rather
+		     than an underline that goes nowhere. -->
 		<h2 id="footer-certifications-heading"
 			class="!mb-0 !text-[16px] !font-bold !leading-[1.8] !tracking-[-0.16px] !text-center">
-			<?php echo esc_html($heading); ?>
+			<?php if ($heading_url) : ?>
+				<a href="<?php echo esc_url($heading_url); ?>"
+					class="underline underline-offset-2 decoration-text/40 hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2 rounded-sm">
+					<?php echo esc_html($heading); ?>
+				</a>
+			<?php else : ?>
+				<?php echo esc_html($heading); ?>
+			<?php endif; ?>
 		</h2>
 
 		<!-- Figma: flex wrap, gap-[66px] between logos, logos ~113px tall. Smaller gap + icon on mobile. -->

@@ -31,9 +31,10 @@ function elahub_handle_contact_form_submission()
 	$email        = sanitize_email(wp_unslash($_POST['email_address'] ?? ''));
 	$organisation = sanitize_text_field(wp_unslash($_POST['organisation'] ?? ''));
 	$interest     = sanitize_text_field(wp_unslash($_POST['interest'] ?? ''));
+	$heard_about  = sanitize_text_field(wp_unslash($_POST['heard_about'] ?? ''));
 	$message      = trim((string) wp_unslash($_POST['message'] ?? ''));
 
-	if (! $full_name || ! $email || ! is_email($email) || ! $message) {
+	if (! $full_name || ! $email || ! is_email($email) || ! $heard_about || ! $message) {
 		wp_safe_redirect(get_permalink($page_id) . '?contact_status=error&contact_message=' . rawurlencode('Please complete the required fields before submitting the form.'));
 		exit;
 	}
@@ -74,6 +75,7 @@ function elahub_handle_contact_form_submission()
 	$body[]  = 'Email Address: ' . $email;
 	$body[]  = 'Organisation: ' . ($organisation ?: 'Not provided');
 	$body[]  = 'Interested In: ' . ($interest ?: 'Not provided');
+	$body[]  = 'Heard About eLaHub Via: ' . ($heard_about ?: 'Not provided');
 	$body[]  = '';
 	$body[]  = 'Message:';
 	$body[]  = $message;

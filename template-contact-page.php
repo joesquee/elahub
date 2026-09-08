@@ -74,6 +74,24 @@ $form_fields = [
 		],
 	],
 	[
+		// Options and label match the form on the current elahub.net site, where
+		// this question is also required.
+		'label'        => 'How did you hear about eLaHub?',
+		'name'         => 'heard_about',
+		'type'         => 'select',
+		'autocomplete' => 'off',
+		'required'     => true,
+		'options'      => [
+			''                => 'Select an option',
+			'Webinar/event'   => 'Webinar/event',
+			'LinkedIn Ad'     => 'LinkedIn Ad',
+			'LinkedIn Post'   => 'LinkedIn Post',
+			'Web Search'      => 'Web Search',
+			'Word of mouth'   => 'Word of mouth',
+			'Other'           => 'Other',
+		],
+	],
+	[
 		'label'        => 'Your Message',
 		'name'         => 'message',
 		'type'         => 'textarea',
