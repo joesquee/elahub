@@ -452,6 +452,7 @@ require get_template_directory() . '/inc/acf-fields-thank-you.php';
 require get_template_directory() . '/inc/dalc-checkout.php';
 require get_template_directory() . '/inc/slug-redirects.php';
 require get_template_directory() . '/inc/svg-uploads.php';
+require get_template_directory() . '/inc/analytics.php';
 
 /**
  * Theme self-deploy endpoint used by the GitHub Actions pipeline.
