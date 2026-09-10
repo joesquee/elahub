@@ -9,9 +9,16 @@ name: Deploy theme
 # website UID and the smoke-test URL differ. Divergence between these files has
 # already cost a day of debugging once.
 #
-# TARGET IS THE STAGING SITE. elahubv2.squeehosting.co.uk (UID wTGf7ncsM) is
-# where eLaHub lives today; it joins the support plan on its own domain later.
-# When that happens, five values change here and nothing else.
+# TARGET IS THE LIVE SITE (repointed 10 Sep 2026, ahead of the 11 Sep cutover).
+# Website UID ZXZZCdIDO. Staging was elahubv2.squeehosting.co.uk (UID wTGf7ncsM)
+# and is no longer deployed to.
+#
+# INTERIM STATE - the domain has not cut over yet. Until elahub.net points at
+# Hostinger, the endpoint URL and the smoke-test URL below use the temporary
+# preview domain hotpink-giraffe-180815.hostingersite.com so both are actually
+# verifiable. AFTER CUTOVER, swap those two to https://elahub.net/ - they are
+# marked "SWAP AFTER CUTOVER" inline. The purge lookup already matches
+# elahub.net and falls back to the hard-coded UID until then.
 #
 # Runs on a GitHub runner because Hostinger's port 65002 is unreachable from
 # Claude's container and from the Cowork shell on Joe's Mac. A runner can
@@ -193,7 +200,7 @@ jobs:
             -H "Content-Type: text/plain; charset=us-ascii" \
             -H "Content-Transfer-Encoding: base64" \
             --data-binary @/tmp/theme.b64 \
-            "https://elahubv2.squeehosting.co.uk/wp-json/squee/v1/self-deploy")
+            "https://hotpink-giraffe-180815.hostingersite.com/wp-json/squee/v1/self-deploy")  # SWAP AFTER CUTOVER -> https://elahub.net/wp-json/squee/v1/self-deploy
           echo "HTTP $code"; cat /tmp/deploy.json; echo
           [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
 
@@ -203,7 +210,7 @@ jobs:
         # somehow, and two independent paths means one being down is survivable
         # rather than blocking.
         #
-        # UID wTGf7ncsM, SSH username u455463912_wTGf7ncsM and the directory
+        # UID ZXZZCdIDO, SSH username u455463912_ZXZZCdIDO and the directory
         # below were all read verbatim off hPanel → Advanced → Remote access on
         # 3 Sep 2026. Do not infer the UID from a database name; hPanel is
         # ground truth.
@@ -241,7 +248,7 @@ jobs:
           rsync -rlvz --checksum --no-perms --no-owner --no-group --omit-dir-times \
             --exclude='.git/' --exclude='.github/' --exclude='.gitignore' --exclude='.DS_Store' \
             -e "ssh -i ~/.ssh/key -p 65002 -o HostKeyAlgorithms=ssh-ed25519" \
-            ./ u455463912_wTGf7ncsM@82.25.100.206:/home/u455463912/websites/wTGf7ncsM/public_html/wp-content/themes/elahub/
+            ./ u455463912_ZXZZCdIDO@82.25.100.206:/home/u455463912/websites/ZXZZCdIDO/public_html/wp-content/themes/elahub/
 
       - name: Fail if neither path deployed
         if: steps.https_deploy.outcome == 'failure'
@@ -251,7 +258,7 @@ jobs:
 
       - name: Purge page and CDN cache
         run: |
-          # elahubv2.squeehosting.co.uk is on the same Agency plan, so it lives under the
+          # The live site is on the same Agency plan, so it lives under the
           # /api/agency-hosting/v1 tree keyed by website UID, not the standard
           # /api/hosting/v1 username+domain tree — the standard endpoints 404
           # because this token sees zero websites there. One DELETE clears
@@ -259,7 +266,7 @@ jobs:
           #
           # The domain lookup below also prints every website UID this token can
           # see, which is the easiest way to confirm which install actually
-          # serves elahubv2.squeehosting.co.uk. Read it on the first run. If the
+          # serves elahub.net. Read it on the first run. If the
           # subdomain does not appear in the list, the fallback UID below is
           # doing all the work and must be right.
           AUTH="Authorization: Bearer ${{ secrets.HOSTINGER_API_TOKEN }}"
@@ -267,10 +274,10 @@ jobs:
             "https://developers.hostinger.com/api/agency-hosting/v1/domains" > /tmp/domains.json
           echo "agency domains visible to this token:"
           jq -r '(.data // .) | .[] | "  \(.domain // .fqdn)  uid=\(.website_uid)"' /tmp/domains.json || cat /tmp/domains.json
-          SITE_UID=$(jq -r '(.data // .) | .[] | select((.domain // .fqdn) == "elahubv2.squeehosting.co.uk") | .website_uid' /tmp/domains.json | head -1)
+          SITE_UID=$(jq -r '(.data // .) | .[] | select((.domain // .fqdn) == "elahub.net") | .website_uid' /tmp/domains.json | head -1)
           if [ -z "$SITE_UID" ] || [ "$SITE_UID" = "null" ]; then
             echo "domain lookup failed, falling back to the UID from the hPanel URL"
-            SITE_UID="wTGf7ncsM"
+            SITE_UID="ZXZZCdIDO"
           fi
           code=$(curl -sS -o /tmp/purge.json -w '%{http_code}' -X DELETE \
             -H "$AUTH" -H "Accept: application/json" \
@@ -280,5 +287,5 @@ jobs:
 
       - name: Verify site answers logged out
         run: |
-          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 https://elahubv2.squeehosting.co.uk/ | tee /tmp/code
+          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 https://hotpink-giraffe-180815.hostingersite.com/ | tee /tmp/code  # SWAP AFTER CUTOVER -> https://elahub.net/
           grep -qE '^(200|301|302)$' /tmp/code
