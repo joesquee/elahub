@@ -159,6 +159,9 @@ $footer_svg_src  = get_template_directory_uri() . '/assets/footer.svg';
 							<li><a href="<?php echo esc_url(home_url('/accessibility-statement-3/')); ?>" class="underline underline-offset-2 transition hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2">Accessibility Statement</a></li>
 						</ul>
 					<?php endif; ?>
+
+					<span aria-hidden="true">-</span>
+					<button type="button" data-elahub-consent-open class="underline underline-offset-2 transition hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-dark focus-visible:ring-offset-2">Cookie preferences</button>
 				</div>
 
 				<!-- Figma: "Made by " normal, "Squee" bold, "." bold larger in primary colour -->

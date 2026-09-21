@@ -1,0 +1,377 @@
+/**
+ * eLaHub cookie consent.
+ *
+ * Deliberately plain CSS rather than Tailwind. This has to render correctly
+ * before anything else on the page and must not depend on a Tailwind rebuild
+ * or survive a purge pass.
+ *
+ * Theme tokens are used where they exist, with hex fallbacks so the banner
+ * still looks right if the stylesheet load order ever changes.
+ */
+
+.elahub-consent {
+	--elahub-consent-purple: var(--color-primary, #5b1f86);
+	--elahub-consent-ink: var(--color-dark, #1a1a1a);
+	--elahub-consent-paper: var(--color-light, #fdfdfd);
+	--elahub-consent-line: var(--color-grey, #e5e2e4);
+	--elahub-consent-tint: var(--color-pale-purple, #f8f2fb);
+
+	font-family: inherit;
+	color: var(--elahub-consent-ink);
+}
+
+/* ---------------------------------------------------------------- Banner */
+
+/*
+ * A floating card rather than a full width bar, so it reads as part of the
+ * site rather than something bolted on. Matches the rounded card treatment
+ * used by the header and the stat panels.
+ */
+.elahub-consent__banner {
+	position: fixed;
+	z-index: 9998;
+
+	/*
+	 * Side offsets track the theme's .container padding at each breakpoint so
+	 * the card lines up with the header and the footer rather than floating on
+	 * its own grid.
+	 */
+	left: var(--container-padding, 0.5rem);
+	right: var(--container-padding, 0.5rem);
+	bottom: 0.75rem;
+
+	background: var(--elahub-consent-paper);
+	border: 1px solid var(--elahub-consent-line);
+	border-radius: 1rem;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.16);
+	padding: 1.5rem 1.75rem;
+}
+
+@media (min-width: 40rem) {
+	.elahub-consent__banner {
+		left: var(--container-padding-sm, 1.5rem);
+		right: var(--container-padding-sm, 1.5rem);
+		bottom: 1rem;
+	}
+}
+
+@media (min-width: 64rem) {
+	.elahub-consent__banner {
+		left: var(--container-padding-lg, 2rem);
+		right: var(--container-padding-lg, 2rem);
+	}
+}
+
+@media (min-width: 80rem) {
+	.elahub-consent__banner {
+		left: var(--container-padding-xl, 3rem);
+		right: var(--container-padding-xl, 3rem);
+	}
+}
+
+@media (min-width: 96rem) {
+	.elahub-consent__banner {
+		left: var(--container-padding-2xl, 5rem);
+		right: var(--container-padding-2xl, 5rem);
+	}
+}
+
+/*
+ * Stacked rather than two columns. Side by side forced the paragraph into a
+ * narrow ragged column while leaving the rest of the card empty, so the text
+ * now runs the full width and the buttons sit underneath it.
+ */
+.elahub-consent__banner-inner {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+}
+
+.elahub-consent__banner-text {
+	min-width: 0;
+	max-width: 88ch;
+}
+
+.elahub-consent__banner-text p {
+	margin: 0.4rem 0 0;
+	font-size: 0.9375rem;
+	line-height: 1.65;
+}
+
+.elahub-consent__title {
+	margin: 0;
+	font-size: 1.0625rem;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.elahub-consent__banner a,
+.elahub-consent__modal a {
+	color: var(--elahub-consent-purple);
+	text-decoration: underline;
+}
+
+/* --------------------------------------------------------------- Actions */
+
+.elahub-consent__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+/* Pushed to the far end of the row, away from the accept/reject pair. */
+.elahub-consent__actions .elahub-consent__btn--link {
+	margin-left: auto;
+}
+
+.elahub-consent__btn {
+	font: inherit;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	line-height: 1.2;
+	white-space: nowrap;
+
+	/* 44px minimum target, per WCAG 2.5.5. */
+	min-height: 44px;
+	padding: 0.75rem 1.5rem;
+
+	/* Pill, to match the site's own buttons. */
+	border-radius: 999px;
+	border: 2px solid var(--elahub-consent-purple);
+	cursor: pointer;
+	background: transparent;
+	color: var(--elahub-consent-purple);
+}
+
+/*
+ * Accept and reject are given identical weight on purpose. Making reject
+ * quieter than accept is the pattern the ICO has repeatedly called out.
+ */
+.elahub-consent__btn--primary {
+	background: var(--elahub-consent-purple);
+	color: var(--elahub-consent-paper);
+}
+
+.elahub-consent__btn--secondary {
+	background: transparent;
+	color: var(--elahub-consent-purple);
+}
+
+.elahub-consent__btn--link {
+	border-color: transparent;
+	background: transparent;
+	color: var(--elahub-consent-ink);
+	text-decoration: underline;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+.elahub-consent__btn:hover {
+	opacity: 0.9;
+}
+
+.elahub-consent__btn:focus-visible,
+.elahub-consent__close:focus-visible,
+.elahub-consent__choice input:focus-visible,
+.elahub-consent a:focus-visible {
+	outline: 3px solid var(--elahub-consent-purple);
+	outline-offset: 3px;
+}
+
+/* Windows High Contrast Mode: borders and outlines must survive. */
+@media (forced-colors: active) {
+	.elahub-consent__btn {
+		border: 2px solid ButtonText;
+	}
+
+	.elahub-consent__btn:focus-visible {
+		outline: 3px solid Highlight;
+	}
+}
+
+/* ----------------------------------------------------------- Preferences */
+
+.elahub-consent__overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	background: rgba(0, 0, 0, 0.55);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	overflow-y: auto;
+}
+
+/*
+ * A column layout with only the body scrolling. The buttons must stay in view,
+ * otherwise someone who opens the panel to change one toggle has to scroll to
+ * find Save, and may reasonably assume the toggle alone was enough.
+ */
+.elahub-consent__modal {
+	background: var(--elahub-consent-paper);
+	border-radius: 0.5rem;
+	max-width: 40rem;
+	width: 100%;
+	max-height: 90vh;
+	display: flex;
+	flex-direction: column;
+	box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+}
+
+.elahub-consent__modal:focus {
+	outline: none;
+}
+
+.elahub-consent__modal-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px solid var(--elahub-consent-line);
+	flex: none;
+}
+
+.elahub-consent__close {
+	font: inherit;
+	font-size: 1.5rem;
+	line-height: 1;
+	min-width: 44px;
+	min-height: 44px;
+	border: 2px solid transparent;
+	border-radius: 0.375rem;
+	background: transparent;
+	color: var(--elahub-consent-ink);
+	cursor: pointer;
+}
+
+.elahub-consent__modal-body {
+	padding: 1.25rem 1.5rem;
+	overflow-y: auto;
+	flex: 1 1 auto;
+}
+
+.elahub-consent__modal-body > p {
+	margin-top: 0;
+	line-height: 1.6;
+}
+
+.elahub-consent__group {
+	border: 1px solid var(--elahub-consent-line);
+	border-radius: 0.375rem;
+	padding: 1rem 1.25rem 1.25rem;
+	margin: 0 0 1rem;
+}
+
+.elahub-consent__group-title {
+	font-weight: 700;
+	padding: 0 0.35rem;
+	font-size: 1rem;
+}
+
+.elahub-consent__group-desc {
+	margin: 0.35rem 0 0.85rem;
+	line-height: 1.6;
+	font-size: 0.9375rem;
+}
+
+.elahub-consent__always {
+	margin: 0;
+	font-weight: 600;
+	color: var(--elahub-consent-purple);
+	font-size: 0.9375rem;
+}
+
+.elahub-consent__choice {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	min-height: 44px;
+}
+
+.elahub-consent__choice input {
+	width: 1.35rem;
+	height: 1.35rem;
+	accent-color: var(--elahub-consent-purple);
+	flex: none;
+	cursor: pointer;
+}
+
+.elahub-consent__choice label {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.elahub-consent__modal-foot {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	border-top: 1px solid var(--elahub-consent-line);
+	background: var(--elahub-consent-tint);
+	border-radius: 0 0 0.5rem 0.5rem;
+	flex: none;
+}
+
+/* ------------------------------------------------------- Status / footer */
+
+/*
+ * Visually hidden, but announced. Confirms the choice landed for anyone who
+ * cannot see the banner disappear.
+ */
+.elahub-consent__status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Stop the fixed banner covering the end of the page. */
+html.elahub-consent-active body {
+	padding-bottom: 13rem;
+}
+
+html.elahub-consent-modal-open,
+html.elahub-consent-modal-open body {
+	overflow: hidden;
+}
+
+@media (max-width: 40rem) {
+	/* Full width stacked buttons, so Manage preferences is not stranded. */
+	.elahub-consent__actions .elahub-consent__btn--link {
+		margin-left: 0;
+	}
+
+	.elahub-consent__banner {
+		padding: 1.25rem;
+		max-height: 80vh;
+		overflow-y: auto;
+	}
+
+	.elahub-consent__actions .elahub-consent__btn {
+		flex: 1 1 100%;
+		text-align: center;
+	}
+
+	html.elahub-consent-active body {
+		padding-bottom: 24rem;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.elahub-consent *,
+	.elahub-consent *::before,
+	.elahub-consent *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+}

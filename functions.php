@@ -465,3 +465,12 @@ require get_template_directory() . '/inc/analytics.php';
 if (file_exists(get_template_directory() . '/inc/deploy.php')) {
 	require get_template_directory() . '/inc/deploy.php';
 }
+
+/**
+ * Cookie consent: banner, preference panel and the gate that stops tracking
+ * scripts running before the visitor has chosen. reCAPTCHA and PayPal are
+ * treated as strictly necessary and are never gated.
+ */
+if (file_exists(get_template_directory() . '/inc/consent/class-elahub-consent.php')) {
+	require get_template_directory() . '/inc/consent/class-elahub-consent.php';
+}
