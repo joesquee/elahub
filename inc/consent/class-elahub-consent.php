@@ -82,6 +82,12 @@ class ELaHub_Consent
 	);
 
 	private static $inline_patterns = array(
+		// The GTM container snippet builds its own script element in JS, so the
+		// tag in the server HTML is inline with no src. It uses w[l].push()
+		// rather than dataLayer.push(), so it has to be matched on the host
+		// name it assembles or on gtm.start. Missing this is how the container
+		// slipped through the first deploy.
+		'#googletagmanager\.com|gtm\.start#i'                    => 'google',
 		'#gtag\s*\(|dataLayer\s*\.\s*push|GoogleAnalyticsObject#i' => 'google',
 		'#amplitude\s*\.\s*(init|getInstance)#i'                   => 'analytics',
 		'#\bsbjs\s*\.\s*init|wc_order_attribution#i'               => 'analytics',
