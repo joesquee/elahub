@@ -563,17 +563,33 @@ function elahub_showcase_send_welcome_email( string $email, string $first_name )
 /**
  * Add / update the contact in MailChimp and tag them. Logs and swallows failures.
  */
+/**
+ * Log a MailChimp sync line to WooCommerce > Status > Logs as well as the PHP
+ * error log.
+ *
+ * Every failure in elahub_showcase_mailchimp_upsert() used to go only to
+ * error_log(). On Hostinger that lands somewhere nobody reads, which is how ten
+ * days of lost sign-ups went unnoticed in September 2026. A sync that silently
+ * drops a person's consent record has to be visible from wp-admin.
+ */
+function elahub_mc_log( string $message ): void {
+    error_log( '[elahub] ' . $message );
+    if ( function_exists( 'wc_get_logger' ) ) {
+        wc_get_logger()->info( $message, [ 'source' => 'elahub-mailchimp' ] );
+    }
+}
+
 function elahub_showcase_mailchimp_upsert( string $email, array $merge_fields, string $tag = '' ): void {
     // Key precedence: admin override (Theme Settings → Integrations) → MAIL_CHIMP_KEY (wp-config).
     $key = elahub_showcase_setting( 'showcase_mailchimp_api_key', 'MAIL_CHIMP_KEY' );
     if ( '' === $key ) {
-        error_log( '[elahub] Showcase MailChimp skipped: no API key (set Theme Settings → Integrations, or MAIL_CHIMP_KEY in wp-config).' );
+        elahub_mc_log( 'Showcase MailChimp skipped: no API key (set Theme Settings → Integrations, or MAIL_CHIMP_KEY in wp-config).' );
         return;
     }
 
     $dc  = substr( strrchr( $key, '-' ), 1 );
     if ( ! $dc ) {
-        error_log( '[elahub] Showcase MailChimp skipped: could not parse data-centre from key.' );
+        elahub_mc_log( 'Showcase MailChimp skipped: could not parse data-centre from key.' );
         return;
     }
 
@@ -606,7 +622,7 @@ function elahub_showcase_mailchimp_upsert( string $email, array $merge_fields, s
     // option that no longer matches). Don't let that lose the sign-up — retry
     // with just the required name fields so the person is still subscribed.
     if ( 400 === $code && count( $merge_fields ) > 2 ) {
-        error_log( '[elahub] Showcase MailChimp 400 with full merge fields; retrying with name only. Response: ' . wp_remote_retrieve_body( $res ) );
+        elahub_mc_log( 'Showcase MailChimp 400 with full merge fields; retrying with name only. Response: ' . wp_remote_retrieve_body( $res ) );
         $res  = $put( [
             'FNAME' => $merge_fields['FNAME'] ?? '',
             'LNAME' => $merge_fields['LNAME'] ?? '',
@@ -615,11 +631,11 @@ function elahub_showcase_mailchimp_upsert( string $email, array $merge_fields, s
     }
 
     if ( is_wp_error( $res ) ) {
-        error_log( '[elahub] Showcase MailChimp member upsert error: ' . $res->get_error_message() );
+        elahub_mc_log( 'Showcase MailChimp member upsert error: ' . $res->get_error_message() );
         return;
     }
     if ( $code < 200 || $code >= 300 ) {
-        error_log( '[elahub] Showcase MailChimp member upsert HTTP ' . $code . ': ' . wp_remote_retrieve_body( $res ) );
+        elahub_mc_log( 'Showcase MailChimp member upsert HTTP ' . $code . ': ' . wp_remote_retrieve_body( $res ) );
         return;
     }
 
@@ -646,17 +662,17 @@ function elahub_showcase_mailchimp_upsert( string $email, array $merge_fields, s
         // out themselves ("compliance state"). In that case set them to pending,
         // which emails them a one-click confirm link instead of failing silently.
         if ( 400 === $scode && str_contains( strtolower( (string) wp_remote_retrieve_body( $sub ) ), 'compliance' ) ) {
-            error_log( '[elahub] MailChimp re-subscribe for ' . $email . ' blocked (compliance state); retrying as pending (confirmation email).' );
+            elahub_mc_log( 'MailChimp re-subscribe for ' . $email . ' blocked (compliance state); retrying as pending (confirmation email).' );
             $sub   = $set_status( 'pending' );
             $scode = is_wp_error( $sub ) ? 0 : wp_remote_retrieve_response_code( $sub );
         }
 
         if ( is_wp_error( $sub ) ) {
-            error_log( '[elahub] MailChimp re-subscribe error for ' . $email . ': ' . $sub->get_error_message() );
+            elahub_mc_log( 'MailChimp re-subscribe error for ' . $email . ': ' . $sub->get_error_message() );
         } elseif ( $scode < 200 || $scode >= 300 ) {
-            error_log( '[elahub] MailChimp re-subscribe HTTP ' . $scode . ' for ' . $email . ' (was ' . $status . '): ' . wp_remote_retrieve_body( $sub ) );
+            elahub_mc_log( 'MailChimp re-subscribe HTTP ' . $scode . ' for ' . $email . ' (was ' . $status . '): ' . wp_remote_retrieve_body( $sub ) );
         } else {
-            error_log( '[elahub] MailChimp re-subscribed ' . $email . ' (was ' . $status . ').' );
+            elahub_mc_log( 'MailChimp re-subscribed ' . $email . ' (was ' . $status . ').' );
         }
     }
 
@@ -666,8 +682,11 @@ function elahub_showcase_mailchimp_upsert( string $email, array $merge_fields, s
         'body'    => wp_json_encode( [ 'tags' => [ [ 'name' => $tag, 'status' => 'active' ] ] ] ),
     ] );
     if ( is_wp_error( $tag_res ) ) {
-        error_log( '[elahub] Showcase MailChimp tag error: ' . $tag_res->get_error_message() );
+        elahub_mc_log( 'Showcase MailChimp tag error: ' . $tag_res->get_error_message() );
+        return;
     }
+
+    elahub_mc_log( sprintf( 'MailChimp OK: %s upserted (HTTP %d) and tagged "%s".', $email, $code, $tag ) );
 }
 
 /* ── "Send a test" for the Showcase welcome email (admin only) ────────────────── */
