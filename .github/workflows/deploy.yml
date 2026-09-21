@@ -13,12 +13,12 @@ name: Deploy theme
 # Website UID ZXZZCdIDO. Staging was elahubv2.squeehosting.co.uk (UID wTGf7ncsM)
 # and is no longer deployed to.
 #
-# INTERIM STATE - the domain has not cut over yet. Until elahub.net points at
-# Hostinger, the endpoint URL and the smoke-test URL below use the temporary
-# preview domain hotpink-giraffe-180815.hostingersite.com so both are actually
-# verifiable. AFTER CUTOVER, swap those two to https://elahub.net/ - they are
-# marked "SWAP AFTER CUTOVER" inline. The purge lookup already matches
-# elahub.net and falls back to the hard-coded UID until then.
+# The domain has cut over. Both the deploy endpoint and the smoke test now
+# address https://elahub.net/ directly. The old temporary preview hostname
+# hotpink-giraffe-180815.hostingersite.com stopped resolving on 21 Sep 2026,
+# which failed the HTTPS deploy step and the verify step on run 9 while the
+# SSH fallback quietly carried the files. The cache purge looks the UID up by
+# elahub.net and falls back to the hard-coded UID.
 #
 # Runs on a GitHub runner because Hostinger's port 65002 is unreachable from
 # Claude's container and from the Cowork shell on Joe's Mac. A runner can
@@ -200,7 +200,7 @@ jobs:
             -H "Content-Type: text/plain; charset=us-ascii" \
             -H "Content-Transfer-Encoding: base64" \
             --data-binary @/tmp/theme.b64 \
-            "https://hotpink-giraffe-180815.hostingersite.com/wp-json/squee/v1/self-deploy")  # SWAP AFTER CUTOVER -> https://elahub.net/wp-json/squee/v1/self-deploy
+            "https://elahub.net/wp-json/squee/v1/self-deploy")
           echo "HTTP $code"; cat /tmp/deploy.json; echo
           [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
 
@@ -287,5 +287,5 @@ jobs:
 
       - name: Verify site answers logged out
         run: |
-          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 https://hotpink-giraffe-180815.hostingersite.com/ | tee /tmp/code  # SWAP AFTER CUTOVER -> https://elahub.net/
+          curl -sS -o /dev/null -w '%{http_code}\n' --max-time 30 https://elahub.net/ | tee /tmp/code
           grep -qE '^(200|301|302)$' /tmp/code
