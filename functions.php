@@ -474,3 +474,12 @@ if (file_exists(get_template_directory() . '/inc/deploy.php')) {
 if (file_exists(get_template_directory() . '/inc/consent/class-elahub-consent.php')) {
 	require get_template_directory() . '/inc/consent/class-elahub-consent.php';
 }
+
+/**
+ * TalentLMS enrolment: repairs the course <-> product mapping the TalentLMS plugin
+ * relies on. Without `_talentlms_course_id` on the purchased product, both of the
+ * plugin's enrolment paths exit silently and buyers are never enrolled.
+ */
+if (file_exists(get_template_directory() . '/inc/talentlms-mapping.php')) {
+	require get_template_directory() . '/inc/talentlms-mapping.php';
+}
