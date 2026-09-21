@@ -151,6 +151,67 @@ function elahub_showcase_setting( string $acf_field, string $constant, string $d
     return $default;
 }
 
+/* ── MailChimp key status notice (Theme Settings → Integrations) ─────────────── */
+/**
+ * Show, on the Integrations screen only, whether a usable MailChimp key is in
+ * play and where it came from. Never prints the key.
+ *
+ * Why this exists: the override field is an ACF `password` type, so it renders
+ * masked. On 21 Sep 2026 it was found to contain a 13-character string with no
+ * hyphen in it - almost certainly a password pasted into the wrong box. Because
+ * the override takes precedence over MAIL_CHIMP_KEY in wp-config, that silently
+ * disabled every MailChimp sync from 11 September: elahub_showcase_mailchimp_upsert()
+ * cannot parse a data centre from a key with no "-", so it returns before making
+ * any API call. The forms kept saying "Thank you!" and nobody could see a thing
+ * was wrong. A masked field that quietly overrides a working value needs to say
+ * what it is doing.
+ */
+add_action( 'admin_notices', 'elahub_mailchimp_key_status_notice' );
+function elahub_mailchimp_key_status_notice(): void {
+
+    if ( ( $_GET['page'] ?? '' ) !== 'elahub-integrations' ) {
+        return;
+    }
+
+    $override = function_exists( 'get_field' ) ? (string) get_field( 'showcase_mailchimp_api_key', 'option' ) : '';
+    $override = trim( $override );
+    $from_wpconfig = defined( 'MAIL_CHIMP_KEY' ) && (string) constant( 'MAIL_CHIMP_KEY' ) !== '';
+
+    $key    = $override !== '' ? $override : ( $from_wpconfig ? (string) constant( 'MAIL_CHIMP_KEY' ) : '' );
+    $source = $override !== '' ? 'the override field below' : ( $from_wpconfig ? 'MAIL_CHIMP_KEY in wp-config' : '' );
+
+    if ( $key === '' ) {
+        printf(
+            '<div class="notice notice-error"><p><strong>MailChimp is not connected.</strong> No API key is set — neither in the override field below nor as %s in wp-config. Sign-ups will not reach MailChimp.</p></div>',
+            '<code>MAIL_CHIMP_KEY</code>'
+        );
+        return;
+    }
+
+    // A MailChimp key is 32 hex characters, a hyphen, then the data centre.
+    $well_formed = (bool) preg_match( '/^[0-9a-f]{32}-[a-z]{2}\d+$/i', $key );
+    $dc          = strpos( $key, '-' ) !== false ? substr( strrchr( $key, '-' ), 1 ) : '';
+
+    if ( ! $well_formed ) {
+        printf(
+            '<div class="notice notice-error"><p><strong>MailChimp key looks wrong — sign-ups are not reaching MailChimp.</strong> The key in use comes from %1$s and is %2$d characters%3$s. A MailChimp key is 36 characters: 32 hex digits, a hyphen, then the data centre (for this account, <code>us3</code>). %4$s</p></div>',
+            esc_html( $source ),
+            strlen( $key ),
+            $dc === '' ? ' with no hyphen in it, so no data centre can be read from it' : '',
+            $override !== ''
+                ? 'Clear the override field below to fall back to <code>MAIL_CHIMP_KEY</code> in wp-config, or paste a valid key.'
+                : 'Correct <code>MAIL_CHIMP_KEY</code> in wp-config.'
+        );
+        return;
+    }
+
+    printf(
+        '<div class="notice notice-success"><p><strong>MailChimp key OK.</strong> Using the key from %s (data centre <code>%s</code>).</p></div>',
+        esc_html( $source ),
+        esc_html( $dc )
+    );
+}
+
 /* ── Mail failure diagnostics ────────────────────────────────────────────────── */
 // wp_mail() only returns true/false; the actual reason (SMTP refusal, send
 // limit, misconfiguration) is in the wp_mail_failed hook. Log it so mail
