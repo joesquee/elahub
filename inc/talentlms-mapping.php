@@ -250,3 +250,54 @@ function elahub_tlms_trace_out($order_id): void {
 
 	elahub_tlms_log('TRACE OUT | ' . implode(' | ', $bits));
 }
+
+
+/* ===========================================================================
+ * TEMPORARY - one-shot dump of the TalentLMS plugin's own errorLog.txt.
+ *
+ * The plugin catches every API failure with catch (Exception) and writes the
+ * message to TLMS_BASEPATH/errorLog.txt, which is not reachable over HTTP (the
+ * site rewrites .txt to the 404 template), so it has never been read. It is the
+ * only record of why enrolment was failing before 21 Sep 2026. Dump the tail of
+ * it into WooCommerce > Status > Logs once, then remove this block.
+ * ======================================================================== */
+
+add_action('admin_init', 'elahub_tlms_dump_plugin_error_log', 21);
+
+function elahub_tlms_dump_plugin_error_log(): void {
+
+	if (get_option('elahub_tlms_errorlog_dumped') === '1') {
+		return;
+	}
+
+	$file = WP_PLUGIN_DIR . '/talentlms/errorLog.txt';
+
+	if (! file_exists($file) || ! is_readable($file)) {
+		elahub_tlms_log('errorLog.txt not readable at ' . $file);
+		update_option('elahub_tlms_errorlog_dumped', '1', false);
+		return;
+	}
+
+	$size = (int) filesize($file);
+	$keep = 6000;
+	$body = '';
+
+	$fh = fopen($file, 'r');
+	if (is_resource($fh)) {
+		if ($size > $keep) {
+			fseek($fh, -$keep, SEEK_END);
+		}
+		$body = (string) stream_get_contents($fh);
+		fclose($fh);
+	}
+
+	elahub_tlms_log(sprintf(
+		'errorLog.txt (%d bytes, last %d shown):%s%s',
+		$size,
+		strlen($body),
+		PHP_EOL,
+		$body
+	));
+
+	update_option('elahub_tlms_errorlog_dumped', '1', false);
+}
