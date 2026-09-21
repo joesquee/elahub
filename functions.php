@@ -483,12 +483,3 @@ if (file_exists(get_template_directory() . '/inc/consent/class-elahub-consent.ph
 if (file_exists(get_template_directory() . '/inc/talentlms-mapping.php')) {
 	require get_template_directory() . '/inc/talentlms-mapping.php';
 }
-
-/**
- * TEMPORARY: measures whether this server can reach the TalentLMS portal, every
- * 15 minutes for 24 hours, to size the intermittent connection timeouts behind
- * the failed enrolments. Self-expiring. Remove once the question is settled.
- */
-if (file_exists(get_template_directory() . '/inc/talentlms-probe.php')) {
-	require get_template_directory() . '/inc/talentlms-probe.php';
-}
