@@ -1581,6 +1581,9 @@ main.service-template
    error read as "ou cannot add another..." or "nfortunately, your
    credit card details are not valid."
    Restores WooCommerce's own spacing and drops the inherited bullet. */
+ul.woocommerce-error,
+ul.woocommerce-info,
+ul.woocommerce-message,
 .woocommerce-error,
 .woocommerce-info,
 .woocommerce-message {

@@ -4309,7 +4309,7 @@ main.service-template > section:first-of-type + section[aria-labelledby^='logo-s
   justify-content: center;
   gap: calc(var(--spacing) * 2);
 }
-.woocommerce-error, .woocommerce-info, .woocommerce-message {
+ul.woocommerce-error, ul.woocommerce-info, ul.woocommerce-message, .woocommerce-error, .woocommerce-info, .woocommerce-message {
   padding-left: 3.5em;
   list-style: none;
 }
