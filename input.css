@@ -1569,3 +1569,21 @@ main.service-template
 .navigation.pagination .nav-links {
   @apply flex flex-wrap items-center justify-center gap-2;
 }
+
+/* WooCommerce notices
+   ------------------------------------------------------------------
+   WooCommerce renders its notices as <ul class="woocommerce-error">,
+   so the base list rule above (ul, ol { @apply mb-5 pl-6 }) matches
+   them and overrides WooCommerce's own left padding. The notice icon
+   is positioned absolutely at 1.5em, and pl-6 is 1.5rem, which at this
+   theme's 18px base is the same 27px - so the text began exactly where
+   the icon began and the first character sat underneath it. Every Woo
+   error read as "ou cannot add another..." or "nfortunately, your
+   credit card details are not valid."
+   Restores WooCommerce's own spacing and drops the inherited bullet. */
+.woocommerce-error,
+.woocommerce-info,
+.woocommerce-message {
+	padding-left: 3.5em;
+	list-style: none;
+}

@@ -467,9 +467,6 @@
   .mb-10 {
     margin-bottom: calc(var(--spacing) * 10);
   }
-  .-ml-\[50vw\] {
-    margin-left: calc(50vw * -1);
-  }
   .line-clamp-3 {
     overflow: hidden;
     display: -webkit-box;
@@ -996,10 +993,6 @@
     border-style: var(--tw-border-style);
     border-width: 0px;
   }
-  .border-y {
-    border-block-style: var(--tw-border-style);
-    border-block-width: 1px;
-  }
   .\!border-t {
     border-top-style: var(--tw-border-style) !important;
     border-top-width: 1px !important;
@@ -1023,12 +1016,6 @@
     border-color: color-mix(in srgb, #d8e2e7 50%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
       border-color: color-mix(in oklab, var(--color-primary-border) 50%, transparent);
-    }
-  }
-  .border-primary-border\/60 {
-    border-color: color-mix(in srgb, #d8e2e7 60%, transparent);
-    @supports (color: color-mix(in lab, red, red)) {
-      border-color: color-mix(in oklab, var(--color-primary-border) 60%, transparent);
     }
   }
   .border-primary-border\/70 {
@@ -4321,6 +4308,10 @@ main.service-template > section:first-of-type + section[aria-labelledby^='logo-s
   align-items: center;
   justify-content: center;
   gap: calc(var(--spacing) * 2);
+}
+.woocommerce-error, .woocommerce-info, .woocommerce-message {
+  padding-left: 3.5em;
+  list-style: none;
 }
 @property --tw-translate-x {
   syntax: "*";
