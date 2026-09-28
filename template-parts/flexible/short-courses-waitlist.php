@@ -119,7 +119,12 @@ $nonce   = wp_create_nonce('elahub_form_submit');
 						<input type="hidden" name="_nonce"               value="<?php echo esc_attr($nonce); ?>">
 						<input type="hidden" name="_form_label"          value="Short Courses Waitlist">
 						<input type="hidden" name="_success_msg"         value="<?php echo esc_attr($success_message); ?>">
-						<input type="hidden" name="_notification_emails" value="<?php echo esc_attr($notification_emails_csv); ?>">
+						<?php
+						// Signed so the address list cannot be edited in the browser.
+						elahub_form_signed_field('_notification_emails', (string) $notification_emails_csv);
+						// Honeypot, signed render time and the reCAPTCHA token slot.
+						elahub_form_spam_fields();
+						?>
 
 						<div class="elahub-form__status" role="alert" aria-live="polite" tabindex="-1" hidden></div>
 

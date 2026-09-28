@@ -56,7 +56,23 @@
             ? window.elahubForm.ajaxUrl
             : '/wp-admin/admin-ajax.php';
 
-        fetch( ajaxUrl, {
+        // reCAPTCHA v3 tokens expire after a couple of minutes, so one is
+        // fetched per submission rather than at page load. When reCAPTCHA is
+        // not configured the helper does not exist and we carry straight on —
+        // the honeypot and timing checks still apply server side.
+        const token = window.elahubRecaptchaToken
+            ? window.elahubRecaptchaToken( 'form' )
+            : Promise.resolve( '' );
+
+        token.then( function ( value ) {
+            if ( value ) {
+                payload.set( 'elahub_recaptcha_token', value );
+            }
+            return send();
+        } );
+
+        function send() {
+        return fetch( ajaxUrl, {
             method:      'POST',
             body:        payload,
             credentials: 'same-origin',
@@ -85,6 +101,7 @@
                 );
                 setButtonBusy( submitBtn, false );
             } );
+        }
     }
 
     /* ── Helpers ────────────────────────────────────────────────────────────── */

@@ -225,6 +225,12 @@ if ('success' === $form_status) {
 							<input type="hidden" name="action" value="elahub_submit_contact_form">
 							<input type="hidden" name="page_id" value="<?php echo esc_attr((string) $page_id); ?>">
 							<?php wp_nonce_field('elahub_contact_form_' . $page_id, 'elahub_contact_nonce'); ?>
+							<?php
+							// Honeypot, signed render time and the reCAPTCHA token slot.
+							if (function_exists('elahub_form_spam_fields')) {
+								elahub_form_spam_fields();
+							}
+							?>
 
 							<?php foreach ($form_fields as $field) : ?>
 								<?php $field_id = 'elahub-contact-' . $field['name']; ?>

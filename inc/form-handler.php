@@ -238,13 +238,28 @@ function elahub_handle_form_submit(): void {
         ] );
     }
 
+    // Honeypot, timing and (when keys are set) reCAPTCHA. Every rejection gets
+    // the same neutral wording so a bot cannot learn which layer caught it.
+    if ( function_exists( 'elahub_form_spam_check' ) ) {
+        $spam = elahub_form_spam_check( $_POST, 'form' );
+        if ( $spam !== true ) {
+            elahub_form_spam_log( 'Form submission blocked: ' . $spam );
+            wp_send_json_error( [ 'message' => 'Sorry, we could not send that. Please try again.' ] );
+        }
+    }
+
     // ── 2. Meta fields (not sent as email body rows) ──────────────────────────
     $form_label  = sanitize_text_field( wp_unslash( $_POST['_form_label']  ?? '' ) );
     $form_type   = sanitize_key( wp_unslash( $_POST['_form_type'] ?? '' ) );
     $success_msg = sanitize_text_field( wp_unslash( $_POST['_success_msg'] ?? 'Thank you — we’ll be in touch shortly.' ) );
 
     // ── 3. Collect user-submitted fields ──────────────────────────────────────
-    $reserved = [ '_nonce', 'action', '_form_label', '_form_type', '_success_msg', '_notification_emails' ];
+    // Meta and guard fields never appear as rows in the notification email.
+    $reserved = [
+        '_nonce', 'action', '_form_label', '_form_type', '_success_msg',
+        '_notification_emails', '_notification_emails_sig',
+        'elahub_hp_url', 'elahub_ts', 'elahub_tsig', 'elahub_recaptcha_token',
+    ];
 
     $fields = [];
     foreach ( $_POST as $raw_key => $raw_val ) {
@@ -294,9 +309,17 @@ function elahub_handle_form_submit(): void {
     if ( $is_local ) {
         $recipients = [ 'joe@squee.design' ];
     } else {
-        $recipients = [ get_option( 'admin_email' ) ];
+        // Deliberately NOT seeded with the site admin address. That quietly made
+        // the admin a recipient of every submission from every form, which is
+        // how a client's enquiries ended up in our inbox. Admin is the last
+        // resort below, only when a form has no addresses of its own.
+        $recipients = [];
 
-        $extra_raw = sanitize_text_field( wp_unslash( $_POST['_notification_emails'] ?? '' ) );
+        // Signed in the template. An unsigned or edited value is discarded, so
+        // the form cannot be pointed at an address of someone else's choosing.
+        $extra_raw = function_exists( 'elahub_form_signed_value' )
+            ? sanitize_text_field( wp_unslash( elahub_form_signed_value( $_POST, '_notification_emails' ) ) )
+            : '';
         foreach ( explode( ',', $extra_raw ) as $candidate ) {
             $candidate = sanitize_email( trim( $candidate ) );
             if ( $candidate && is_email( $candidate ) ) {
@@ -305,6 +328,13 @@ function elahub_handle_form_submit(): void {
         }
 
         $recipients = array_values( array_unique( array_filter( $recipients ) ) );
+
+        if ( ! $recipients ) {
+            $recipients = [ get_option( 'admin_email' ) ];
+            if ( function_exists( 'elahub_form_spam_log' ) ) {
+                elahub_form_spam_log( 'Form "' . $form_label . '" has no notification addresses set, falling back to the site admin.' );
+            }
+        }
     }
 
     // ── 5. Email body ─────────────────────────────────────────────────────────

@@ -32,7 +32,20 @@ function elahub_handle_contact_form_submission()
 	$organisation = sanitize_text_field(wp_unslash($_POST['organisation'] ?? ''));
 	$interest     = sanitize_text_field(wp_unslash($_POST['interest'] ?? ''));
 	$heard_about  = sanitize_text_field(wp_unslash($_POST['heard_about'] ?? ''));
-	$message      = trim((string) wp_unslash($_POST['message'] ?? ''));
+	// Strip tags from the message. It is the one field that was passed through
+	// untouched, which is why spam arrived as a wall of raw link markup.
+	$message      = trim(wp_strip_all_tags((string) wp_unslash($_POST['message'] ?? '')));
+
+	// Honeypot, timing and (when keys are set) reCAPTCHA. A blocked submission
+	// gets the same wording as a validation failure so a bot learns nothing.
+	if (function_exists('elahub_form_spam_check')) {
+		$spam = elahub_form_spam_check($_POST, 'contact');
+		if ($spam !== true) {
+			elahub_form_spam_log('Contact form blocked: ' . $spam);
+			wp_safe_redirect(get_permalink($page_id) . '?contact_status=error&contact_message=' . rawurlencode('Sorry, we could not send your enquiry. Please try again.'));
+			exit;
+		}
+	}
 
 	if (! $full_name || ! $email || ! is_email($email) || ! $heard_about || ! $message) {
 		wp_safe_redirect(get_permalink($page_id) . '?contact_status=error&contact_message=' . rawurlencode('Please complete the required fields before submitting the form.'));
@@ -45,7 +58,12 @@ function elahub_handle_contact_form_submission()
 	if ($is_local) {
 		$recipients = ['joe@squee.design'];
 	} else {
-		$recipients   = [get_option('admin_email')];
+		// Deliberately NOT seeded with the site admin address. That made the
+		// admin a silent recipient of every enquiry from every form, which is
+		// how a client's inbound mail ended up in our inbox. Admin is only used
+		// as a last resort below, when a page has no addresses configured, so
+		// nothing is lost quietly.
+		$recipients   = [];
 		$extra_emails = get_field('contact_notification_emails', $page_id);
 
 		if (is_array($extra_emails)) {
@@ -65,6 +83,13 @@ function elahub_handle_contact_form_submission()
 		}
 
 		$recipients = array_values(array_unique(array_filter($recipients)));
+
+		if (! $recipients) {
+			$recipients = [get_option('admin_email')];
+			if (function_exists('elahub_form_spam_log')) {
+				elahub_form_spam_log('Contact form on page ' . $page_id . ' has no notification addresses set, falling back to the site admin.');
+			}
+		}
 	}
 
 	$subject = sprintf('New contact enquiry from %s', $full_name);

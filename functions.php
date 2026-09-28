@@ -447,6 +447,14 @@ require_once get_template_directory() . '/inc/seed-advocacy-logo-strip.php';
 require_once get_template_directory() . '/inc/yoast-acf-content-analysis.php';
 require get_template_directory() . '/inc/learning-hub-cpt.php';
 require get_template_directory() . '/inc/contact-page-handler.php';
+/**
+ * Spam protection shared by the contact form and the four flexible-content
+ * forms: honeypot, signed timing check and optional reCAPTCHA v3. Loaded
+ * before the handlers so its helpers exist when they run.
+ */
+if (file_exists(get_template_directory() . '/inc/form-spam.php')) {
+	require get_template_directory() . '/inc/form-spam.php';
+}
 require get_template_directory() . '/inc/form-handler.php';
 require get_template_directory() . '/inc/acf-fields-thank-you.php';
 require get_template_directory() . '/inc/dalc-checkout.php';
