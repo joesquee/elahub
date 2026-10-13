@@ -3,13 +3,17 @@
 /**
  * Google Tag Manager.
  *
- * The container carries everything: GA4 (G-YZ1NQGCLV0) and the LinkedIn
- * Insight Tag are both configured inside GTM rather than hardcoded here, which
- * is why the measurement ID never appears in the page source. Adding tags is a
- * GTM job, not a theme job — nothing below should need editing for a new tag.
+ * GA4 (G-YZ1NQGCLV0) is loaded directly by the theme, below. It is NOT in
+ * GTM: on 13 Oct 2026 the published GTM-K98MDMTK container was found to be
+ * empty (no tags, triggers or rules), so the site loaded GTM but never sent
+ * anything to GA4. Squee has no access to that GTM account.
  *
- * Carried over from the previous elahub.net build, which fired the same
- * container. Without this the new site collects nothing at all.
+ * The container is still loaded so anything eLaHub adds to it later fires.
+ * If GA4 is ever configured inside GTM, set ELAHUB_GA4_ID to '' or the
+ * property will count every page view twice.
+ *
+ * Both tags are gated by the cookie banner (inc/consent) and respect the
+ * Consent Mode v2 defaults it prints.
  *
  * @package elahub
  */
@@ -20,6 +24,10 @@ if (! defined('ABSPATH')) {
 
 if (! defined('ELAHUB_GTM_ID')) {
 	define('ELAHUB_GTM_ID', 'GTM-K98MDMTK');
+}
+
+if (! defined('ELAHUB_GA4_ID')) {
+	define('ELAHUB_GA4_ID', 'G-YZ1NQGCLV0');
 }
 
 /**
@@ -56,6 +64,35 @@ function elahub_gtm_head()
 	<?php
 }
 add_action('wp_head', 'elahub_gtm_head', 1);
+
+/**
+ * GA4 Google tag, straight after the GTM container.
+ *
+ * The consent gate rewrites both script tags to inert text/plain until the
+ * visitor agrees, then releases them in document order.
+ */
+function elahub_ga4_head()
+{
+	$id = ELAHUB_GA4_ID;
+
+	if (empty($id)) {
+		return;
+	}
+	?>
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr($id); ?>"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() {
+			dataLayer.push(arguments);
+		}
+		gtag('js', new Date());
+		gtag('config', <?php echo wp_json_encode($id); ?>);
+	</script>
+	<!-- End Google tag -->
+	<?php
+}
+add_action('wp_head', 'elahub_ga4_head', 2);
 
 /**
  * The no-JavaScript fallback, immediately after <body>.
